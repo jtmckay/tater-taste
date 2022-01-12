@@ -37,9 +37,9 @@
   "scripts": {
     "build": "rm -rf dist && npx tsc",
     "build:client": "yarn copy:public && esbuild ./client/src/App.tsx --bundle --minify --outfile=./server/public/index.js --target=chrome58,firefox57,safari11,edge18",
-    "copy:public": "mkdir -p ./server/public && cp ./client/public/index.html ./server/public/index.html && cp ./client/public/. ./server/public -r",
+    "copy:public": "mkdir -p ./server/public && cp ./client/public/index.html ./server/public/index.html && cp -r ./client/public/. ./server/public",
     "start": "yarn copy:public && yarn build:client && nodemon server",
     "watch": "esbuild ./client/src/App.tsx --bundle --watch --outfile=./server/public/index.js --target=chrome58,firefox57,safari11,edge18"
   },
-  "version": "1.0.2"
+  "version": "1.0.3"
 }
