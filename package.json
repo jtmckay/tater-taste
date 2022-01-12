@@ -35,6 +35,7 @@
   "main": "dist/index.js",
   "name": "tater-taste",
   "scripts": {
+    "ast": "npx ts-node ast client/src/App",
     "build": "rm -rf dist && npx tsc",
     "build:client": "yarn copy:public && esbuild ./client/src/App.tsx --bundle --minify --outfile=./server/public/index.js --target=chrome58,firefox57,safari11,edge18",
     "copy:public": "mkdir -p ./server/public && cp ./client/public/index.html ./server/public/index.html && cp -r ./client/public/. ./server/public",

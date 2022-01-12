@@ -67,8 +67,10 @@
   },
   "/home/taylor/GitHub/tater-taste/client/src/components/Explorer": {
     "fileName": "/home/taylor/GitHub/tater-taste/client/src/components/Explorer/index.tsx",
-    "text": "import React from 'react'\n\nexport default function Explorer () {\n  return (\n    <div>\n      Explore!!!!\n    </div>\n  )\n}\n",
-    "modules": [],
+    "text": "import React from 'react'\nimport { css } from '@emotion/css'\nimport { FileGraph, SourceFiles } from '../../../../ast/generateAST'\n\nexport default function Explorer ({ fileGraph, sourceFiles }: { fileGraph: FileGraph, sourceFiles: SourceFiles}) {\n  return (\n    <div className={css`\n      margin: 20px;\n    `}>\n      File: {fileGraph.fileName}\n      <br/>\n      Modules: {fileGraph.modules.map(module => {\n        return <div>\n          {module}\n        </div>\n      })}\n      <br />\n      <br />\n      {Object.keys(sourceFiles).map(fileName => {\n        return <div className={css`\n          margin: 10px;\n        `}>\n          Source File: {fileName}\n          Modules: {sourceFiles[fileName].modules.map(module => {\n            return <div>\n              {module}\n            </div>\n          })}\n          Code: {sourceFiles[fileName].text}\n        </div>\n      })}\n    </div>\n  )\n}\n",
+    "modules": [
+      "/home/taylor/GitHub/tater-taste/ast/generateAST.ts"
+    ],
     "statements": [
       {
         "pos": 0,
@@ -78,8 +80,111 @@
       },
       {
         "pos": 25,
-        "end": 120,
+        "end": 60,
+        "name": "@emotion/css",
+        "type": "module"
+      },
+      {
+        "pos": 60,
+        "end": 129,
+        "name": "../../../../ast/generateAST",
+        "type": "module"
+      },
+      {
+        "pos": 129,
+        "end": 885,
         "name": "Explorer",
+        "type": "statement"
+      }
+    ]
+  },
+  "/home/taylor/GitHub/tater-taste/ast/generateAST": {
+    "fileName": "/home/taylor/GitHub/tater-taste/ast/generateAST.ts",
+    "text": "// Change rootDir and entrypoint to reflect your repo\n// ```npx ts-node ast```\n\nimport { existsSync } from 'fs';\nimport { join } from 'path';\nimport ts = require('typescript');\n\nconst logging = false;\n\nconst tsConfigCompilerOptions = {\n  moduleResolution: 2,\n  noImplicitAny: false,\n  target: 2,\n};\n\nexport function generateAST(entryPoint: string): { sourceFiles: SourceFiles, fileGraph: FileGraph } {\n  const program = ts.createProgram(fileVariations(entryPoint).filter((i) => existsSync(i)), tsConfigCompilerOptions);\n  const programFileMap: ts.Map<ts.SourceFile> = (program as any).getFilesByNameMap();\n  const sourceFiles: SourceFiles = {};\n\n  // console.log('program', program.getRootFileNames())\n\n  const fileGraph = traverseFile(sourceFiles, entryPoint, programFileMap);\n  return { sourceFiles, fileGraph };\n}\n\nfunction debugLog(...params: any) {\n  if (logging) {\n    debugLog(...params);\n  }\n}\n\nexport type SourceFiles = { [key: string]: SourceFile }\n\nexport type SourceFile = {\n  fileName: string,\n  text: string,\n  modules: string[]\n  statements?: Statement[]\n}\n\nexport type FileGraph = {\n  fileName: string,\n  modules: string[]\n}\n\nexport type Statement = {\n  pos: number,\n  end: number,\n  name: string,\n  type: string,\n}\n\nfunction traverseFile(sourceFiles: SourceFiles, file: string, fileMap: ts.Map<ts.SourceFile>, parentSourceFile?: any, importStatement?: string, prefix: string = ''): FileGraph {\n  const root = findFile(file, fileMap, importStatement);\n\n  if (!root && parentSourceFile && parentSourceFile.resolvedModules.get(importStatement)) {\n    const subProgram = ts.createProgram(fileVariations(file).filter((i) => existsSync(i)), tsConfigCompilerOptions);\n    const subFileMap: ts.Map<ts.SourceFile> = (subProgram as any).getFilesByNameMap();\n    return traverseFile(sourceFiles, file, subFileMap);\n  }\n\n  if (!root) {\n    throw new Error(`Could not find file ${file}`);\n  }\n  if (sourceFiles[file]) {\n    return sourceFiles[file];\n  }\n  const parsedFile: SourceFile = {\n    fileName: root.fileName,\n    text: root.text,\n    modules: [],\n    statements: [],\n  };\n  sourceFiles[file] = parsedFile;\n  root.statements.forEach((statement: any, index) => {\n    debugLog(prefix, 'Index', index);\n    if (statement.moduleSpecifier?.text) {\n      debugLog(prefix, 'statement moduleSpecifier text:', statement.moduleSpecifier.text);\n      try {\n        parsedFile.statements?.push({\n          pos: statement.pos,\n          end: statement.end,\n          name: statement.moduleSpecifier.text,\n          type: 'module',\n        });\n        const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);\n        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleSpecifier.text, `${prefix}\\t`).fileName);\n      } catch (err) {\n        console.info(prefix, `Skipped ${statement.moduleSpecifier.text} in ${file}`);\n      }\n    } else if (statement.name?.escapedText) {\n      debugLog(prefix, 'statement name:', statement.name?.escapedText);\n      parsedFile?.statements?.push({\n        pos: statement.pos,\n        end: statement.end,\n        name: statement.name?.escapedText,\n        type: 'statement',\n      });\n    } else if (statement.declarationList?.declarations) {\n      statement.declarationList.declarations.forEach((declaration: ts.Declaration & { name: { escapedText: string }}) => {\n        debugLog(prefix, 'declaration name:', declaration.name?.escapedText);\n        parsedFile?.statements?.push({\n          pos: statement.pos,\n          end: statement.end,\n          name: declaration.name?.escapedText,\n          type: 'declaration',\n        });\n      });\n    } else {\n      debugLog(prefix, 'Missed something', statement);\n    }\n  });\n  return { fileName: parsedFile.fileName, modules: parsedFile.modules };\n}\n\nfunction fileVariations(file: string): string[] {\n  return [\n    file,\n    `${file}.ts`,\n    `${file}.tsx`,\n    file.toLowerCase(),\n    `${file}.ts`.toLowerCase(),\n    `${file}.tsx`.toLowerCase(),\n    join(file, 'index.ts'),\n    join(file, 'index.tsx'),\n    join(file, 'index.ts').toLowerCase(),\n    join(file, 'index.tsx').toLowerCase(),\n  ];\n}\n\nfunction findFile(file: string, fileMap: ts.Map<ts.SourceFile>, importStatement?: string): ts.SourceFile | undefined {\n  let foundFile;\n  if (importStatement) {\n    fileVariations(importStatement).some((filePath) => {\n      foundFile = fileMap.get(filePath);\n      return !!foundFile;\n    });\n  }\n  if (!foundFile) {\n    fileVariations(file).some((filePath) => {\n      foundFile = fileMap.get(filePath);\n      return !!foundFile;\n    });\n  }\n  return foundFile;\n}\n",
+    "modules": [],
+    "statements": [
+      {
+        "pos": 0,
+        "end": 112,
+        "name": "fs",
+        "type": "module"
+      },
+      {
+        "pos": 112,
+        "end": 141,
+        "name": "path",
+        "type": "module"
+      },
+      {
+        "pos": 141,
+        "end": 176,
+        "name": "ts",
+        "type": "statement"
+      },
+      {
+        "pos": 176,
+        "end": 200,
+        "name": "logging",
+        "type": "declaration"
+      },
+      {
+        "pos": 200,
+        "end": 298,
+        "name": "tsConfigCompilerOptions",
+        "type": "declaration"
+      },
+      {
+        "pos": 298,
+        "end": 816,
+        "name": "generateAST",
+        "type": "statement"
+      },
+      {
+        "pos": 816,
+        "end": 901,
+        "name": "debugLog",
+        "type": "statement"
+      },
+      {
+        "pos": 901,
+        "end": 958,
+        "name": "SourceFiles",
+        "type": "statement"
+      },
+      {
+        "pos": 958,
+        "end": 1071,
+        "name": "SourceFile",
+        "type": "statement"
+      },
+      {
+        "pos": 1071,
+        "end": 1140,
+        "name": "FileGraph",
+        "type": "statement"
+      },
+      {
+        "pos": 1140,
+        "end": 1231,
+        "name": "Statement",
+        "type": "statement"
+      },
+      {
+        "pos": 1231,
+        "end": 3791,
+        "name": "traverseFile",
+        "type": "statement"
+      },
+      {
+        "pos": 3791,
+        "end": 4138,
+        "name": "fileVariations",
+        "type": "statement"
+      },
+      {
+        "pos": 4138,
+        "end": 4603,
+        "name": "findFile",
         "type": "statement"
       }
     ]
