@@ -1,0 +1,147 @@
+// Change rootDir and entrypoint to reflect your repo
+// ```npx ts-node ast```
+
+import { existsSync } from 'fs';
+import { join } from 'path';
+import ts = require('typescript');
+
+const logging = false;
+
+const tsConfigCompilerOptions = {
+  moduleResolution: 2,
+  noImplicitAny: false,
+  target: 2,
+};
+
+export function generateAST(entryPoint: string): { sourceFiles: SourceFiles, fileGraph: FileGraph } {
+  const program = ts.createProgram(fileVariations(entryPoint).filter((i) => existsSync(i)), tsConfigCompilerOptions);
+  const programFileMap: ts.Map<ts.SourceFile> = (program as any).getFilesByNameMap();
+  const sourceFiles: SourceFiles = {};
+
+  // console.log('program', program.getRootFileNames())
+
+  const fileGraph = traverseFile(sourceFiles, entryPoint, programFileMap);
+  return { sourceFiles, fileGraph };
+}
+
+function debugLog(...params: any) {
+  if (logging) {
+    debugLog(...params);
+  }
+}
+
+export type SourceFiles = { [key: string]: SourceFile }
+
+export type SourceFile = {
+  fileName: string,
+  text: string,
+  modules: string[]
+  statements?: Statement[]
+}
+
+export type FileGraph = {
+  fileName: string,
+  modules: string[]
+}
+
+export type Statement = {
+  pos: number,
+  end: number,
+  name: string,
+  type: string,
+}
+
+function traverseFile(sourceFiles: SourceFiles, file: string, fileMap: ts.Map<ts.SourceFile>, parentSourceFile?: any, importStatement?: string, prefix: string = ''): FileGraph {
+  const root = findFile(file, fileMap, importStatement);
+
+  if (!root && parentSourceFile && parentSourceFile.resolvedModules.get(importStatement)) {
+    const subProgram = ts.createProgram(fileVariations(file).filter((i) => existsSync(i)), tsConfigCompilerOptions);
+    const subFileMap: ts.Map<ts.SourceFile> = (subProgram as any).getFilesByNameMap();
+    return traverseFile(sourceFiles, file, subFileMap);
+  }
+
+  if (!root) {
+    throw new Error(`Could not find file ${file}`);
+  }
+  if (sourceFiles[file]) {
+    return sourceFiles[file];
+  }
+  const parsedFile: SourceFile = {
+    fileName: root.fileName,
+    text: root.text,
+    modules: [],
+    statements: [],
+  };
+  sourceFiles[file] = parsedFile;
+  root.statements.forEach((statement: any, index) => {
+    debugLog(prefix, 'Index', index);
+    if (statement.moduleSpecifier?.text) {
+      debugLog(prefix, 'statement moduleSpecifier text:', statement.moduleSpecifier.text);
+      try {
+        parsedFile.statements?.push({
+          pos: statement.pos,
+          end: statement.end,
+          name: statement.moduleSpecifier.text,
+          type: 'module',
+        });
+        const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);
+        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleSpecifier.text, `${prefix}\t`).fileName);
+      } catch (err) {
+        console.info(prefix, `Skipped ${statement.moduleSpecifier.text} in ${file}`);
+      }
+    } else if (statement.name?.escapedText) {
+      debugLog(prefix, 'statement name:', statement.name?.escapedText);
+      parsedFile?.statements?.push({
+        pos: statement.pos,
+        end: statement.end,
+        name: statement.name?.escapedText,
+        type: 'statement',
+      });
+    } else if (statement.declarationList?.declarations) {
+      statement.declarationList.declarations.forEach((declaration: ts.Declaration & { name: { escapedText: string }}) => {
+        debugLog(prefix, 'declaration name:', declaration.name?.escapedText);
+        parsedFile?.statements?.push({
+          pos: statement.pos,
+          end: statement.end,
+          name: declaration.name?.escapedText,
+          type: 'declaration',
+        });
+      });
+    } else {
+      debugLog(prefix, 'Missed something', statement);
+    }
+  });
+  return { fileName: parsedFile.fileName, modules: parsedFile.modules };
+}
+
+function fileVariations(file: string): string[] {
+  return [
+    file,
+    `${file}.ts`,
+    `${file}.tsx`,
+    file.toLowerCase(),
+    `${file}.ts`.toLowerCase(),
+    `${file}.tsx`.toLowerCase(),
+    join(file, 'index.ts'),
+    join(file, 'index.tsx'),
+    join(file, 'index.ts').toLowerCase(),
+    join(file, 'index.tsx').toLowerCase(),
+  ];
+}
+
+function findFile(file: string, fileMap: ts.Map<ts.SourceFile>, importStatement?: string): ts.SourceFile | undefined {
+  let foundFile;
+  if (importStatement) {
+    fileVariations(importStatement).some((filePath) => {
+      foundFile = fileMap.get(filePath);
+      return !!foundFile;
+    });
+  }
+  if (!foundFile) {
+    fileVariations(file).some((filePath) => {
+      foundFile = fileMap.get(filePath);
+      return !!foundFile;
+    });
+  }
+  return foundFile;
+}

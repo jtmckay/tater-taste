@@ -1,0 +1,87 @@
+{
+  "/home/taylor/GitHub/tater-taste/client/src/App": {
+    "fileName": "/home/taylor/GitHub/tater-taste/client/src/App.tsx",
+    "text": "import React from 'react'\nimport ReactDOM from 'react-dom'\nimport Home from './views/Home'\n\nReactDOM.render(\n  <Home />,\n  document.getElementById('app')\n)\n",
+    "modules": [
+      "/home/taylor/GitHub/tater-taste/client/src/views/Home/index.tsx"
+    ],
+    "statements": [
+      {
+        "pos": 0,
+        "end": 25,
+        "name": "react",
+        "type": "module"
+      },
+      {
+        "pos": 25,
+        "end": 58,
+        "name": "react-dom",
+        "type": "module"
+      },
+      {
+        "pos": 58,
+        "end": 90,
+        "name": "./views/Home",
+        "type": "module"
+      }
+    ]
+  },
+  "/home/taylor/GitHub/tater-taste/client/src/views/Home": {
+    "fileName": "/home/taylor/GitHub/tater-taste/client/src/views/Home/index.tsx",
+    "text": "import React from 'react'\nimport Explorer from '../../components/Explorer'\nimport fileGraph from '../../fileGraph.json'\nimport sourceFiles from '../../sourceFiles.json'\n\nexport default function Home () {\n  return (\n    <div>\n      <div>Hello from the AST client!</div>\n      <Explorer fileGraph={fileGraph} sourceFiles={sourceFiles} />\n    </div>\n  )\n}\n",
+    "modules": [
+      "/home/taylor/GitHub/tater-taste/client/src/components/Explorer/index.tsx"
+    ],
+    "statements": [
+      {
+        "pos": 0,
+        "end": 25,
+        "name": "react",
+        "type": "module"
+      },
+      {
+        "pos": 25,
+        "end": 74,
+        "name": "../../components/Explorer",
+        "type": "module"
+      },
+      {
+        "pos": 74,
+        "end": 119,
+        "name": "../../fileGraph.json",
+        "type": "module"
+      },
+      {
+        "pos": 119,
+        "end": 168,
+        "name": "../../sourceFiles.json",
+        "type": "module"
+      },
+      {
+        "pos": 168,
+        "end": 352,
+        "name": "Home",
+        "type": "statement"
+      }
+    ]
+  },
+  "/home/taylor/GitHub/tater-taste/client/src/components/Explorer": {
+    "fileName": "/home/taylor/GitHub/tater-taste/client/src/components/Explorer/index.tsx",
+    "text": "import React from 'react'\n\nexport default function Explorer () {\n  return (\n    <div>\n      Explore!!!!\n    </div>\n  )\n}\n",
+    "modules": [],
+    "statements": [
+      {
+        "pos": 0,
+        "end": 25,
+        "name": "react",
+        "type": "module"
+      },
+      {
+        "pos": 25,
+        "end": 120,
+        "name": "Explorer",
+        "type": "statement"
+      }
+    ]
+  }
+}
