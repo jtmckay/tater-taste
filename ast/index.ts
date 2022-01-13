@@ -13,16 +13,18 @@ program.description('An application for exploring typescript repositories')
 .addHelpText('after', `
   Examples:
     $ tater-taste client/src/
-    -- Compile the target typescript file, and host a webpage to navigate
+    -- Compile the target typescript file, and host a webpage locally to explore
 `)
 .argument('[file]', 'Specify the path of the file')
-.action((filePath: string) => {
+.option('-c --config <type>', 'Specify the path to your tsconfig.json')
+.action((filePath: string, { config }: { config: string }) => {
   try {
-    const ast = generateAST(join(process.cwd(), filePath || ''))
+    const ast = generateAST(filePath, config)
     fs.writeFileSync(join(__dirname, '../client/src/', 'fileGraph.json'), JSON.stringify(ast.fileGraph, null, 2))
     fs.writeFileSync(join(__dirname, '../client/src/', 'sourceFiles.json'), JSON.stringify(ast.sourceFiles, null, 2))
   } catch (err) {
-    console.log(`Please check the path to your main typescript file. \nAdd the path as an argument. EG: tater-taste client/src\n\n`, err)
+    console.log(`Please check the path to your main typescript file. \nAdd the path as an argument. EG: tater-taste client/src\n\n`)
+    throw err
   }
 
   const childProcess = exec(`cd ${join(__dirname, '../')} && yarn start`, (error: Error, stdout: any, stderr: any) => {

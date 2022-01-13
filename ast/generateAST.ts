@@ -1,6 +1,3 @@
-// Change rootDir and entrypoint to reflect your repo
-// ```npx ts-node ast```
-
 import { existsSync } from 'fs';
 import { join } from 'path';
 import ts = require('typescript');
@@ -13,15 +10,32 @@ const tsConfigCompilerOptions = {
   target: 2,
 };
 
-export function generateAST(entryPoint: string): { sourceFiles: SourceFiles, fileGraph: FileGraph } {
-  const program = ts.createProgram(fileVariations(entryPoint).filter((i) => existsSync(i)), tsConfigCompilerOptions);
+export function generateAST(entryPoint?: string, tsConfigPath?: string): { sourceFiles: SourceFiles, fileGraph: FileGraph } {
+  const entryFilePath = join(process.cwd(), entryPoint || '')
+  const program = ts.createProgram(fileVariations(entryFilePath).filter((i) => existsSync(i)), grabConfig(tsConfigPath));
   const programFileMap: ts.Map<ts.SourceFile> = (program as any).getFilesByNameMap();
   const sourceFiles: SourceFiles = {};
 
   // console.log('program', program.getRootFileNames())
 
-  const fileGraph = traverseFile(sourceFiles, entryPoint, programFileMap);
+  const fileGraph = traverseFile(sourceFiles, entryFilePath, programFileMap);
   return { sourceFiles, fileGraph };
+}
+
+function grabConfig(tsConfigPath?: string) {
+  if (tsConfigPath) {
+    const tsConfigFilePath = join(process.cwd(), tsConfigPath)
+    try {
+      const tsConfig = require(tsConfigFilePath)
+      if (tsConfig.compilerOptions) {
+        return tsConfig.compilerOptions
+      }
+    } catch (err) {
+      console.log('Could not load tsconfig at', tsConfigFilePath, '\nPlease ensure there are no comments in the tsconfig supplied\n\n')
+      throw err
+    }
+  }
+  return tsConfigCompilerOptions
 }
 
 function debugLog(...params: any) {

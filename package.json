@@ -17,7 +17,7 @@
     "react-router-dom": "5.2.1",
     "ts-node": "10.4.0"
   },
-  "description": "Existential LLC AST server",
+  "description": "Tater - TypeScript Abstract Syntax Tree Explorer",
   "devDependencies": {
     "@types/node": "17.0.8",
     "@typescript-eslint/eslint-plugin": "5.7.0",
