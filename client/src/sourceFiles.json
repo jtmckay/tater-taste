@@ -28,49 +28,9 @@
   },
   "/home/taylor/GitHub/tater-taste/client/src/views/Home": {
     "fileName": "/home/taylor/GitHub/tater-taste/client/src/views/Home/index.tsx",
-    "text": "import React from 'react'\nimport Explorer from '../../components/Explorer'\nimport fileGraph from '../../fileGraph.json'\nimport sourceFiles from '../../sourceFiles.json'\n\nexport default function Home () {\n  return (\n    <div>\n      <div>Hello from the AST client!</div>\n      <Explorer fileGraph={fileGraph} sourceFiles={sourceFiles} />\n    </div>\n  )\n}\n",
+    "text": "import React from 'react'\nimport { css } from '@emotion/css'\nimport Explorer from '../../components/Explorer'\nimport fileGraph from '../../fileGraph.json'\nimport sourceFiles from '../../sourceFiles.json'\n\nexport default function Home () {\n  return (\n    <div className={css`\n      min-width: 800px;\n    `}>\n      <h1 className={css`text-align: center;`}>Tater - TypeScript Abstract Syntax Tree Explorer</h1>\n      <Explorer fileGraph={fileGraph} sourceFiles={sourceFiles} />\n    </div>\n  )\n}\n",
     "modules": [
       "/home/taylor/GitHub/tater-taste/client/src/components/Explorer/index.tsx"
-    ],
-    "statements": [
-      {
-        "pos": 0,
-        "end": 25,
-        "name": "react",
-        "type": "module"
-      },
-      {
-        "pos": 25,
-        "end": 74,
-        "name": "../../components/Explorer",
-        "type": "module"
-      },
-      {
-        "pos": 74,
-        "end": 119,
-        "name": "../../fileGraph.json",
-        "type": "module"
-      },
-      {
-        "pos": 119,
-        "end": 168,
-        "name": "../../sourceFiles.json",
-        "type": "module"
-      },
-      {
-        "pos": 168,
-        "end": 352,
-        "name": "Home",
-        "type": "statement"
-      }
-    ]
-  },
-  "/home/taylor/GitHub/tater-taste/client/src/components/Explorer": {
-    "fileName": "/home/taylor/GitHub/tater-taste/client/src/components/Explorer/index.tsx",
-    "text": "import React from 'react'\nimport { css } from '@emotion/css'\nimport { FileGraph, SourceFiles } from '../../../../ast/generateAST'\nimport SourceFile from '../SourceFile'\n\nexport default function Explorer ({ fileGraph, sourceFiles }: { fileGraph: FileGraph, sourceFiles: SourceFiles}) {\n  console.log('filegraphj', fileGraph.fileName)\n  console.log('sourceFiles', sourceFiles)\n  console.log('sourceFiles', sourceFiles[fileGraph.fileName])\n  return (\n    <div className={css`\n      margin: 20px;\n    `}>\n      <SourceFile sourceFile={sourceFiles[fileGraph.fileName]} />)\n    </div>\n  )\n}\n",
-    "modules": [
-      "/home/taylor/GitHub/tater-taste/ast/generateAST.ts",
-      "/home/taylor/GitHub/tater-taste/client/src/components/SourceFile/index.tsx"
     ],
     "statements": [
       {
@@ -87,19 +47,90 @@
       },
       {
         "pos": 60,
-        "end": 129,
+        "end": 109,
+        "name": "../../components/Explorer",
+        "type": "module"
+      },
+      {
+        "pos": 109,
+        "end": 154,
+        "name": "../../fileGraph.json",
+        "type": "module"
+      },
+      {
+        "pos": 154,
+        "end": 203,
+        "name": "../../sourceFiles.json",
+        "type": "module"
+      },
+      {
+        "pos": 203,
+        "end": 491,
+        "name": "Home",
+        "type": "statement"
+      }
+    ]
+  },
+  "/home/taylor/GitHub/tater-taste/client/src/components/Explorer": {
+    "fileName": "/home/taylor/GitHub/tater-taste/client/src/components/Explorer/index.tsx",
+    "text": "import React, { useState } from 'react'\nimport { css } from '@emotion/css'\nimport TextField from '@mui/material/TextField';\nimport { FileGraph, SourceFilesType, SourceFileType } from '../../../../ast/generateAST'\nimport SourceFile from '../SourceFile'\nimport { getShortSourceFileName } from '../../utils/findSourceFile'\n\nlet searchTimerThrottleId\n\nfunction matchFile (sourceFile: SourceFileType, searchString: string): boolean {\n  return searchString.split(' ').every(searchText => {\n    const regex = new RegExp(searchText.replace(/([^a-z0-9])/g, '\\\\$1'))\n    if (regex.test(sourceFile.fileName)) {\n      return true\n    }\n    if (regex.test(sourceFile.text)) {\n      return true\n    }\n  })\n}\n\nexport default function Explorer ({ fileGraph, sourceFiles }: { fileGraph: FileGraph, sourceFiles: SourceFilesType}) {\n  const [expandedModules, setExpandedModules] = useState<string[]>([])\n  const [searchText, setSearchText] = useState('')\n  const [searchResults, setSearchResults] = useState<string[]>([])\n\n  function expandModule (moduleName: string) {\n    if (expandedModules.includes(moduleName)) {\n      return\n    }\n    const newExpandedModules = [...expandedModules]\n    newExpandedModules.push(moduleName)\n    setExpandedModules(newExpandedModules)\n  }\n\n  function collapseModule (moduleName: string) {\n    const newExpandedModules = [...expandedModules].filter(i => i !== moduleName)\n    setExpandedModules(newExpandedModules)\n  }\n\n  function expandSearchResult (moduleName: string) {\n    if (searchResults.includes(moduleName)) {\n      return\n    }\n    const newSearchResults = [...searchResults]\n    newSearchResults.push(moduleName)\n    setSearchResults(newSearchResults)\n  }\n  function removeSearchResult (moduleName: string) {\n    const newSearchResults = [...searchResults].filter(i => i !== moduleName)\n    setSearchResults(newSearchResults)\n  }\n\n  return (\n    <div className={css`\n      margin: 20px;\n      display: flex;\n      flex-wrap: wrap;\n      flex-direction: column;\n    `}>\n      <TextField id=\"outlined-basic\" label=\"Search\" variant=\"outlined\" onChange={event => setSearchText(event.target.value)} onKeyPress={key => {\n        function search () {\n          setSearchResults(Object.values(sourceFiles).reduce((accumulator, sourceFile) => {\n            if (matchFile(sourceFile, searchText)) {\n              accumulator.push(sourceFile.fileName)\n              return accumulator\n            } else {\n              return accumulator\n            }\n          }, []))\n        }\n        if (key.key === 'Enter' && searchText.length) {\n          clearTimeout(searchTimerThrottleId)\n          search()\n        } else {\n          clearTimeout(searchTimerThrottleId)\n          searchTimerThrottleId = setTimeout(search, 1000)\n        }\n      }} />\n      {searchText ? <>\n        {searchResults.map(searchResult => {\n          return (\n            <SourceFile key={searchResult} sourceFile={sourceFiles[getShortSourceFileName(sourceFiles, searchResult)]} expandModule={expandSearchResult} collapseModule={removeSearchResult} />\n          )\n        })}\n      </> : <>\n        <SourceFile sourceFile={sourceFiles[getShortSourceFileName(sourceFiles, fileGraph.fileName)]} expandModule={expandModule} />\n        {expandedModules.map(expandedModule => {\n          return (\n            <SourceFile key={expandedModule} sourceFile={sourceFiles[getShortSourceFileName(sourceFiles, expandedModule)]} expandModule={expandModule} collapseModule={collapseModule} />\n          )\n        })}\n      </>}\n    </div>\n  )\n}\n",
+    "modules": [
+      "/home/taylor/GitHub/tater-taste/ast/generateAST.ts",
+      "/home/taylor/GitHub/tater-taste/client/src/components/SourceFile/index.tsx",
+      "/home/taylor/GitHub/tater-taste/client/src/utils/findSourceFile.ts"
+    ],
+    "statements": [
+      {
+        "pos": 0,
+        "end": 39,
+        "name": "react",
+        "type": "module"
+      },
+      {
+        "pos": 39,
+        "end": 74,
+        "name": "@emotion/css",
+        "type": "module"
+      },
+      {
+        "pos": 74,
+        "end": 123,
+        "name": "@mui/material/TextField",
+        "type": "module"
+      },
+      {
+        "pos": 123,
+        "end": 212,
         "name": "../../../../ast/generateAST",
         "type": "module"
       },
       {
-        "pos": 129,
-        "end": 168,
+        "pos": 212,
+        "end": 251,
         "name": "../SourceFile",
         "type": "module"
       },
       {
-        "pos": 168,
-        "end": 584,
+        "pos": 251,
+        "end": 319,
+        "name": "../../utils/findSourceFile",
+        "type": "module"
+      },
+      {
+        "pos": 319,
+        "end": 346,
+        "name": "searchTimerThrottleId",
+        "type": "declaration"
+      },
+      {
+        "pos": 346,
+        "end": 693,
+        "name": "matchFile",
+        "type": "statement"
+      },
+      {
+        "pos": 693,
+        "end": 3519,
         "name": "Explorer",
         "type": "statement"
       }
@@ -107,7 +138,7 @@
   },
   "/home/taylor/GitHub/tater-taste/ast/generateAST": {
     "fileName": "/home/taylor/GitHub/tater-taste/ast/generateAST.ts",
-    "text": "import { existsSync } from 'fs';\nimport { join } from 'path';\nimport ts = require('typescript');\n\nconst logging = false;\n\nconst tsConfigCompilerOptions = {\n  moduleResolution: 2,\n  noImplicitAny: false,\n  target: 2,\n};\n\nexport function generateAST(entryPoint?: string, tsConfigPath?: string): { sourceFiles: SourceFiles, fileGraph: FileGraph } {\n  const entryFilePath = join(process.cwd(), entryPoint || '')\n  const program = ts.createProgram(fileVariations(entryFilePath).filter((i) => existsSync(i)), grabConfig(tsConfigPath));\n  const programFileMap: ts.Map<ts.SourceFile> = (program as any).getFilesByNameMap();\n  const sourceFiles: SourceFiles = {};\n\n  // console.log('program', program.getRootFileNames())\n\n  const fileGraph = traverseFile(sourceFiles, entryFilePath, programFileMap);\n  return { sourceFiles, fileGraph };\n}\n\nfunction grabConfig(tsConfigPath?: string) {\n  if (tsConfigPath) {\n    const tsConfigFilePath = join(process.cwd(), tsConfigPath)\n    try {\n      const tsConfig = require(tsConfigFilePath)\n      if (tsConfig.compilerOptions) {\n        return tsConfig.compilerOptions\n      }\n    } catch (err) {\n      console.log('Could not load tsconfig at', tsConfigFilePath, '\\nPlease ensure there are no comments in the tsconfig supplied\\n\\n')\n      throw err\n    }\n  }\n  return tsConfigCompilerOptions\n}\n\nfunction debugLog(...params: any) {\n  if (logging) {\n    debugLog(...params);\n  }\n}\n\nexport type SourceFiles = { [key: string]: SourceFile }\n\nexport type SourceFile = {\n  fileName: string,\n  text: string,\n  modules: string[]\n  statements?: Statement[]\n}\n\nexport type FileGraph = {\n  fileName: string,\n  modules: string[]\n}\n\nexport type Statement = {\n  pos: number,\n  end: number,\n  name: string,\n  type: string,\n}\n\nfunction traverseFile(sourceFiles: SourceFiles, file: string, fileMap: ts.Map<ts.SourceFile>, parentSourceFile?: any, importStatement?: string, prefix: string = ''): FileGraph {\n  const root = findFile(file, fileMap, importStatement);\n\n  if (!root && parentSourceFile && parentSourceFile.resolvedModules.get(importStatement)) {\n    const subProgram = ts.createProgram(fileVariations(file).filter((i) => existsSync(i)), tsConfigCompilerOptions);\n    const subFileMap: ts.Map<ts.SourceFile> = (subProgram as any).getFilesByNameMap();\n    return traverseFile(sourceFiles, file, subFileMap);\n  }\n\n  if (!root) {\n    throw new Error(`Could not find file ${file}`);\n  }\n  if (sourceFiles[file]) {\n    return sourceFiles[file];\n  }\n  const parsedFile: SourceFile = {\n    fileName: root.fileName,\n    text: root.text,\n    modules: [],\n    statements: [],\n  };\n  sourceFiles[file] = parsedFile;\n  root.statements.forEach((statement: any, index) => {\n    debugLog(prefix, 'Index', index);\n    if (statement.moduleSpecifier?.text) {\n      debugLog(prefix, 'statement moduleSpecifier text:', statement.moduleSpecifier.text);\n      try {\n        parsedFile.statements?.push({\n          pos: statement.pos,\n          end: statement.end,\n          name: statement.moduleSpecifier.text,\n          type: 'module',\n        });\n        const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);\n        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleSpecifier.text, `${prefix}\\t`).fileName);\n      } catch (err) {\n        console.info(prefix, `Skipped ${statement.moduleSpecifier.text} in ${file}`);\n      }\n    } else if (statement.name?.escapedText) {\n      debugLog(prefix, 'statement name:', statement.name?.escapedText);\n      parsedFile?.statements?.push({\n        pos: statement.pos,\n        end: statement.end,\n        name: statement.name?.escapedText,\n        type: 'statement',\n      });\n    } else if (statement.declarationList?.declarations) {\n      statement.declarationList.declarations.forEach((declaration: ts.Declaration & { name: { escapedText: string }}) => {\n        debugLog(prefix, 'declaration name:', declaration.name?.escapedText);\n        parsedFile?.statements?.push({\n          pos: statement.pos,\n          end: statement.end,\n          name: declaration.name?.escapedText,\n          type: 'declaration',\n        });\n      });\n    } else {\n      debugLog(prefix, 'Missed something', statement);\n    }\n  });\n  return { fileName: parsedFile.fileName, modules: parsedFile.modules };\n}\n\nfunction fileVariations(file: string): string[] {\n  return [\n    file,\n    `${file}.ts`,\n    `${file}.tsx`,\n    file.toLowerCase(),\n    `${file}.ts`.toLowerCase(),\n    `${file}.tsx`.toLowerCase(),\n    join(file, 'index.ts'),\n    join(file, 'index.tsx'),\n    join(file, 'index.ts').toLowerCase(),\n    join(file, 'index.tsx').toLowerCase(),\n  ];\n}\n\nfunction findFile(file: string, fileMap: ts.Map<ts.SourceFile>, importStatement?: string): ts.SourceFile | undefined {\n  let foundFile;\n  if (importStatement) {\n    fileVariations(importStatement).some((filePath) => {\n      foundFile = fileMap.get(filePath);\n      return !!foundFile;\n    });\n  }\n  if (!foundFile) {\n    fileVariations(file).some((filePath) => {\n      foundFile = fileMap.get(filePath);\n      return !!foundFile;\n    });\n  }\n  return foundFile;\n}\n",
+    "text": "import { existsSync } from 'fs';\nimport { join } from 'path';\nimport ts = require('typescript');\n\nconst logging = false;\n\nconst tsConfigCompilerOptions = {\n  moduleResolution: 2,\n  noImplicitAny: false,\n  target: 2,\n};\n\nexport function generateAST(entryPoint?: string, tsConfigPath?: string): { sourceFiles: SourceFilesType, fileGraph: FileGraph } {\n  const entryFilePath = join(process.cwd(), entryPoint || '')\n  const program = ts.createProgram(fileVariations(entryFilePath).filter((i) => existsSync(i)), grabConfig(tsConfigPath));\n  const programFileMap: ts.Map<ts.SourceFile> = (program as any).getFilesByNameMap();\n  const sourceFiles: SourceFilesType = {};\n\n  // console.log('program', program.getRootFileNames())\n\n  const fileGraph = traverseFile(sourceFiles, entryFilePath, programFileMap);\n  return { sourceFiles, fileGraph };\n}\n\nfunction grabConfig(tsConfigPath?: string) {\n  if (tsConfigPath) {\n    const tsConfigFilePath = join(process.cwd(), tsConfigPath)\n    try {\n      const tsConfig = require(tsConfigFilePath)\n      if (tsConfig.compilerOptions) {\n        return tsConfig.compilerOptions\n      }\n    } catch (err) {\n      console.log('Could not load tsconfig at', tsConfigFilePath, '\\nPlease ensure there are no comments in the tsconfig supplied\\n\\n')\n      throw err\n    }\n  }\n  return tsConfigCompilerOptions\n}\n\nfunction debugLog(...params: any) {\n  if (logging) {\n    debugLog(...params);\n  }\n}\n\nexport type SourceFilesType = { [key: string]: SourceFileType }\n\nexport type SourceFileType = {\n  fileName: string,\n  text: string,\n  modules: string[]\n  statements?: Statement[]\n}\n\nexport type FileGraph = {\n  fileName: string,\n  modules: string[]\n}\n\nexport type Statement = {\n  pos: number,\n  end: number,\n  name: string,\n  type: string,\n}\n\nfunction traverseFile(sourceFiles: SourceFilesType, file: string, fileMap: ts.Map<ts.SourceFile>, parentSourceFile?: any, importStatement?: string, prefix: string = ''): FileGraph {\n  const root = findFile(file, fileMap, importStatement);\n\n  if (!root && parentSourceFile && parentSourceFile.resolvedModules.get(importStatement)) {\n    const subProgram = ts.createProgram(fileVariations(file).filter((i) => existsSync(i)), tsConfigCompilerOptions);\n    const subFileMap: ts.Map<ts.SourceFile> = (subProgram as any).getFilesByNameMap();\n    return traverseFile(sourceFiles, file, subFileMap);\n  }\n\n  if (!root) {\n    throw new Error(`Could not find file ${file}`);\n  }\n  if (sourceFiles[file]) {\n    return sourceFiles[file];\n  }\n  const parsedFile: SourceFileType = {\n    fileName: root.fileName,\n    text: root.text,\n    modules: [],\n    statements: [],\n  };\n  sourceFiles[file] = parsedFile;\n  root.statements.forEach((statement: any, index) => {\n    debugLog(prefix, 'Index', index);\n    if (statement.moduleSpecifier?.text) {\n      debugLog(prefix, 'statement moduleSpecifier text:', statement.moduleSpecifier.text);\n      try {\n        parsedFile.statements?.push({\n          pos: statement.pos,\n          end: statement.end,\n          name: statement.moduleSpecifier.text,\n          type: 'module',\n        });\n        const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);\n        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleSpecifier.text, `${prefix}\\t`).fileName);\n      } catch (err) {\n        console.info(prefix, `Skipped ${statement.moduleSpecifier.text} in ${file}`);\n      }\n    } else if (statement.name?.escapedText) {\n      debugLog(prefix, 'statement name:', statement.name?.escapedText);\n      parsedFile?.statements?.push({\n        pos: statement.pos,\n        end: statement.end,\n        name: statement.name?.escapedText,\n        type: 'statement',\n      });\n    } else if (statement.declarationList?.declarations) {\n      statement.declarationList.declarations.forEach((declaration: ts.Declaration & { name: { escapedText: string }}) => {\n        debugLog(prefix, 'declaration name:', declaration.name?.escapedText);\n        parsedFile?.statements?.push({\n          pos: statement.pos,\n          end: statement.end,\n          name: declaration.name?.escapedText,\n          type: 'declaration',\n        });\n      });\n    } else {\n      debugLog(prefix, 'Missed something', statement);\n    }\n  });\n  return { fileName: parsedFile.fileName, modules: parsedFile.modules };\n}\n\nfunction fileVariations(file: string): string[] {\n  return [\n    file,\n    `${file}.ts`,\n    `${file}.tsx`,\n    file.toLowerCase(),\n    `${file}.ts`.toLowerCase(),\n    `${file}.tsx`.toLowerCase(),\n    join(file, 'index.ts'),\n    join(file, 'index.tsx'),\n    join(file, 'index.ts').toLowerCase(),\n    join(file, 'index.tsx').toLowerCase(),\n  ];\n}\n\nfunction findFile(file: string, fileMap: ts.Map<ts.SourceFile>, importStatement?: string): ts.SourceFile | undefined {\n  let foundFile;\n  if (importStatement) {\n    fileVariations(importStatement).some((filePath) => {\n      foundFile = fileMap.get(filePath);\n      return !!foundFile;\n    });\n  }\n  if (!foundFile) {\n    fileVariations(file).some((filePath) => {\n      foundFile = fileMap.get(filePath);\n      return !!foundFile;\n    });\n  }\n  return foundFile;\n}\n",
     "modules": [],
     "statements": [
       {
@@ -142,61 +173,61 @@
       },
       {
         "pos": 218,
-        "end": 829,
+        "end": 837,
         "name": "generateAST",
         "type": "statement"
       },
       {
-        "pos": 829,
-        "end": 1322,
+        "pos": 837,
+        "end": 1330,
         "name": "grabConfig",
         "type": "statement"
       },
       {
-        "pos": 1322,
-        "end": 1407,
+        "pos": 1330,
+        "end": 1415,
         "name": "debugLog",
         "type": "statement"
       },
       {
-        "pos": 1407,
-        "end": 1464,
-        "name": "SourceFiles",
+        "pos": 1415,
+        "end": 1480,
+        "name": "SourceFilesType",
         "type": "statement"
       },
       {
-        "pos": 1464,
-        "end": 1577,
-        "name": "SourceFile",
+        "pos": 1480,
+        "end": 1597,
+        "name": "SourceFileType",
         "type": "statement"
       },
       {
-        "pos": 1577,
-        "end": 1646,
+        "pos": 1597,
+        "end": 1666,
         "name": "FileGraph",
         "type": "statement"
       },
       {
-        "pos": 1646,
-        "end": 1737,
+        "pos": 1666,
+        "end": 1757,
         "name": "Statement",
         "type": "statement"
       },
       {
-        "pos": 1737,
-        "end": 4297,
+        "pos": 1757,
+        "end": 4325,
         "name": "traverseFile",
         "type": "statement"
       },
       {
-        "pos": 4297,
-        "end": 4644,
+        "pos": 4325,
+        "end": 4672,
         "name": "fileVariations",
         "type": "statement"
       },
       {
-        "pos": 4644,
-        "end": 5109,
+        "pos": 4672,
+        "end": 5137,
         "name": "findFile",
         "type": "statement"
       }
@@ -204,75 +235,96 @@
   },
   "/home/taylor/GitHub/tater-taste/client/src/components/SourceFile": {
     "fileName": "/home/taylor/GitHub/tater-taste/client/src/components/SourceFile/index.tsx",
-    "text": "import React from 'react';\nimport Card from '@mui/material/Card';\nimport CardActions from '@mui/material/CardActions';\nimport CardContent from '@mui/material/CardContent';\nimport Button from '@mui/material/Button';\nimport Accordion from '@mui/material/Accordion';\nimport AccordionSummary from '@mui/material/AccordionSummary';\nimport AccordionDetails from '@mui/material/AccordionDetails';\nimport ExpandMoreIcon from '@mui/icons-material/ExpandMore';\nimport { SourceFile } from '../../../../ast/generateAST'\n\nexport default function BasicCard({ sourceFile }: { sourceFile: SourceFile }) {\n  return (\n    <Card sx={{ minWidth: 275 }}>\n      <CardContent>\n        <h3>File: {sourceFile.fileName}</h3>\n        <div>\n          <div>\n            Modules: \n          </div>\n          {sourceFile.modules.map(module => {\n            return <div>\n              {module}\n            </div>\n          })}\n          <Accordion>\n            <AccordionSummary\n              expandIcon={<ExpandMoreIcon />}\n              aria-controls=\"panel1a-content\"\n              id=\"panel1a-header\"\n            >\n              <h4>Expand More</h4>\n            </AccordionSummary>\n            <AccordionDetails>\n              <p>\n                {sourceFile.text}\n              </p>\n            </AccordionDetails>\n          </Accordion>\n        </div>\n      </CardContent>\n      <CardActions>\n        <Button size=\"small\">Expand</Button>\n      </CardActions>\n    </Card>\n  );\n}",
+    "text": "import React, { useState } from 'react';\nimport { css } from '@emotion/css'\nimport Card from '@mui/material/Card';\nimport CardActions from '@mui/material/CardActions';\nimport CardContent from '@mui/material/CardContent';\nimport Accordion from '@mui/material/Accordion';\nimport AccordionSummary from '@mui/material/AccordionSummary';\nimport AccordionDetails from '@mui/material/AccordionDetails';\nimport ExpandMoreIcon from '@mui/icons-material/ExpandMore';\nimport { SourceFileType } from '../../../../ast/generateAST'\n\nexport default function SourceFile({ sourceFile, expandModule, collapseModule }: { sourceFile: SourceFileType, expandModule: Function, collapseModule?: Function }) {\n  return (\n    <>\n      <Card className={css`\n        margin: 10px;\n        position: relative;\n      `} sx={{ minWidth: 275 }}>\n        <CardContent>\n          <Accordion>\n            <AccordionSummary\n              expandIcon={<ExpandMoreIcon />}\n              aria-controls=\"panel1a-content\"\n              id=\"panel1a-header\"\n            >\n              <h3>File: {sourceFile.fileName}</h3>\n            </AccordionSummary>\n            <AccordionDetails>\n              <div>\n                {sourceFile.text.split(/\\n/).map((line, index) => {\n                  const elements = line.split(/  |\\t/).slice(1)\n                  return (\n                    <div key={index}>\n                      {elements.map((_, id) => <span key={`${index}-${id}`}>&nbsp;&nbsp;</span>)}\n                      <span>{line}</span>\n                    </div>\n                  )\n                })}\n              </div>\n            </AccordionDetails>\n          </Accordion>\n          {collapseModule ? <div className={css`\n            cursor: pointer;\n            background: gray;\n            position: absolute;\n            top: 10px;\n            right: 10px;\n            padding: 10px;\n          `} onClick={() => collapseModule(sourceFile.fileName)}>\n            Collapse\n          </div> : undefined}\n        </CardContent>\n        <CardActions className={css`\n          display: flex;\n          flex-direction: column;\n          align-items: flex-start !important;\n        `}>\n          <h3 className={css`\n            margin: 0px 10px;\n          `}>{sourceFile.modules.length ? 'Modules:' : 'No Modules'}</h3>\n          {sourceFile.modules.map(modulePath => {\n            return <div key={modulePath} className={css`\n              cursor: pointer;\n              color: blue;\n              margin: 10px;\n            `} onClick={() => {\n              expandModule(modulePath)\n            }}>{modulePath}</div>\n          })}\n        </CardActions>\n      </Card>\n    </>\n  )\n}\n",
     "modules": [
       "/home/taylor/GitHub/tater-taste/ast/generateAST.ts"
     ],
     "statements": [
       {
         "pos": 0,
-        "end": 26,
+        "end": 40,
         "name": "react",
         "type": "module"
       },
       {
-        "pos": 26,
-        "end": 65,
+        "pos": 40,
+        "end": 75,
+        "name": "@emotion/css",
+        "type": "module"
+      },
+      {
+        "pos": 75,
+        "end": 114,
         "name": "@mui/material/Card",
         "type": "module"
       },
       {
-        "pos": 65,
-        "end": 118,
+        "pos": 114,
+        "end": 167,
         "name": "@mui/material/CardActions",
         "type": "module"
       },
       {
-        "pos": 118,
-        "end": 171,
+        "pos": 167,
+        "end": 220,
         "name": "@mui/material/CardContent",
         "type": "module"
       },
       {
-        "pos": 171,
-        "end": 214,
-        "name": "@mui/material/Button",
-        "type": "module"
-      },
-      {
-        "pos": 214,
-        "end": 263,
+        "pos": 220,
+        "end": 269,
         "name": "@mui/material/Accordion",
         "type": "module"
       },
       {
-        "pos": 263,
-        "end": 326,
+        "pos": 269,
+        "end": 332,
         "name": "@mui/material/AccordionSummary",
         "type": "module"
       },
       {
-        "pos": 326,
-        "end": 389,
+        "pos": 332,
+        "end": 395,
         "name": "@mui/material/AccordionDetails",
         "type": "module"
       },
       {
-        "pos": 389,
-        "end": 450,
+        "pos": 395,
+        "end": 456,
         "name": "@mui/icons-material/ExpandMore",
         "type": "module"
       },
       {
-        "pos": 450,
-        "end": 507,
+        "pos": 456,
+        "end": 517,
         "name": "../../../../ast/generateAST",
         "type": "module"
       },
       {
-        "pos": 507,
-        "end": 1451,
-        "name": "BasicCard",
+        "pos": 517,
+        "end": 2647,
+        "name": "SourceFile",
+        "type": "statement"
+      }
+    ]
+  },
+  "/home/taylor/GitHub/tater-taste/client/src/utils/findSourceFile": {
+    "fileName": "/home/taylor/GitHub/tater-taste/client/src/utils/findSourceFile.ts",
+    "text": "import { SourceFilesType } from \"../../../ast/generateAST\"\n\nexport function getShortSourceFileName (sourceFiles: SourceFilesType, fileName: string): string {\n  if (sourceFiles[fileName]) {\n    return fileName\n  }\n  let shortened = fileName.replace(/(.*)\\..*/, '$1')\n  if (sourceFiles[shortened]) {\n    return shortened\n  }\n  shortened = fileName.replace(/(.*)\\/.*/, '$1')\n  if (sourceFiles[shortened]) {\n    return shortened\n  }\n  throw new Error(`Could not find file ${fileName}`)\n}\n",
+    "modules": [
+      "/home/taylor/GitHub/tater-taste/ast/generateAST.ts"
+    ],
+    "statements": [
+      {
+        "pos": 0,
+        "end": 58,
+        "name": "../../../ast/generateAST",
+        "type": "module"
+      },
+      {
+        "pos": 58,
+        "end": 483,
+        "name": "getShortSourceFileName",
         "type": "statement"
       }
     ]

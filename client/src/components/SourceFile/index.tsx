@@ -28,7 +28,7 @@ export default function SourceFile({ sourceFile, expandModule, collapseModule }:
             <AccordionDetails>
               <div>
                 {sourceFile.text.split(/\n/).map((line, index) => {
-                  const elements = line.split(/  /).slice(1)
+                  const elements = line.split(/  |\t/).slice(1)
                   return (
                     <div key={index}>
                       {elements.map((_, id) => <span key={`${index}-${id}`}>&nbsp;&nbsp;</span>)}
@@ -40,6 +40,7 @@ export default function SourceFile({ sourceFile, expandModule, collapseModule }:
             </AccordionDetails>
           </Accordion>
           {collapseModule ? <div className={css`
+            cursor: pointer;
             background: gray;
             position: absolute;
             top: 10px;
