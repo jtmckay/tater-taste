@@ -1,6 +1,6 @@
-import { SourceFilesType } from "../../../ast/generateAST"
+import { SourceFileKeyMap } from "../../../ast/generateAST"
 
-export function getShortSourceFileName (sourceFiles: SourceFilesType, fileName: string): string {
+export function getShortSourceFileName (sourceFiles: SourceFileKeyMap, fileName: string): string {
   if (sourceFiles[fileName]) {
     return fileName
   }

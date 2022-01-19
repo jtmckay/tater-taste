@@ -10,11 +10,11 @@ const tsConfigCompilerOptions = {
   target: 2,
 };
 
-export function generateAST(entryPoint?: string, tsConfigPath?: string): { sourceFiles: SourceFilesType, fileGraph: FileGraph } {
+export function generateAST(entryPoint?: string, tsConfigPath?: string): { sourceFiles: SourceFileKeyMap, fileGraph: FileGraph } {
   const entryFilePath = join(process.cwd(), entryPoint || '')
   const program = ts.createProgram(fileVariations(entryFilePath).concat(entryPoint? fileVariations(entryPoint) : []).filter((i) => existsSync(i)), grabConfig(tsConfigPath));
   const programFileMap: ts.Map<ts.SourceFile> = (program as any).getFilesByNameMap();
-  const sourceFiles: SourceFilesType = {};
+  const sourceFiles: SourceFileKeyMap = {};
 
   // console.log('program', program.getRootFileNames())
 
@@ -44,9 +44,9 @@ function debugLog(...params: any) {
   }
 }
 
-export type SourceFilesType = { [key: string]: SourceFileType }
+export type SourceFileKeyMap = { [key: string]: SourceFile }
 
-export type SourceFileType = {
+export type SourceFile = {
   fileName: string,
   text: string,
   modules: string[]
@@ -65,7 +65,7 @@ export type Statement = {
   type: string,
 }
 
-function traverseFile(sourceFiles: SourceFilesType, file: string, fileMap: ts.Map<ts.SourceFile>, parentSourceFile?: any, importStatement?: string, prefix: string = ''): FileGraph {
+function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.Map<ts.SourceFile>, parentSourceFile?: any, importStatement?: string, prefix: string = ''): FileGraph {
   const root = findFile(file, fileMap, importStatement);
 
   if (!root && parentSourceFile && parentSourceFile.resolvedModules.get(importStatement)) {
@@ -80,7 +80,7 @@ function traverseFile(sourceFiles: SourceFilesType, file: string, fileMap: ts.Ma
   if (sourceFiles[file]) {
     return sourceFiles[file];
   }
-  const parsedFile: SourceFileType = {
+  const parsedFile: SourceFile = {
     fileName: root.fileName,
     text: root.text,
     modules: [],

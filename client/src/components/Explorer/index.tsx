@@ -1,13 +1,13 @@
 import React, { useState } from 'react'
 import { css } from '@emotion/css'
 import TextField from '@mui/material/TextField';
-import { FileGraph, SourceFilesType, SourceFileType } from '../../../../ast/generateAST'
-import SourceFile from '../SourceFile'
+import { FileGraph, SourceFileKeyMap, SourceFile } from '../../../../ast/generateAST'
+import ExploreItem from '../ExploreItem'
 import { getShortSourceFileName } from '../../utils/findSourceFile'
 
 let searchTimerThrottleId
 
-function matchFile (sourceFile: SourceFileType, searchString: string): boolean {
+function matchFile (sourceFile: SourceFile, searchString: string): boolean {
   return searchString.split(' ').every(searchText => {
     const regex = new RegExp(searchText.replace(/([^a-z0-9])/gi, '\\$1'))
     if (regex.test(sourceFile.fileName)) {
@@ -19,7 +19,7 @@ function matchFile (sourceFile: SourceFileType, searchString: string): boolean {
   })
 }
 
-export default function Explorer ({ fileGraph, sourceFiles }: { fileGraph: FileGraph, sourceFiles: SourceFilesType}) {
+export default function Explorer ({ fileGraph, sourceFileKeyMap }: { fileGraph: FileGraph, sourceFileKeyMap: SourceFileKeyMap}) {
   const [expandedModules, setExpandedModules] = useState<string[]>([])
   const [searchText, setSearchText] = useState('')
   const [searchResults, setSearchResults] = useState<string[]>([])
@@ -60,7 +60,7 @@ export default function Explorer ({ fileGraph, sourceFiles }: { fileGraph: FileG
     `}>
       <TextField id="outlined-basic" label="Search" variant="outlined" onChange={event => setSearchText(event.target.value)} onKeyPress={key => {
         function search () {
-          setSearchResults(Object.values(sourceFiles).reduce((accumulator, sourceFile) => {
+          setSearchResults(Object.values(sourceFileKeyMap).reduce((accumulator, sourceFile) => {
             if (matchFile(sourceFile, searchText)) {
               accumulator.push(sourceFile.fileName)
               return accumulator
@@ -80,14 +80,14 @@ export default function Explorer ({ fileGraph, sourceFiles }: { fileGraph: FileG
       {searchText ? <>
         {searchResults.map(searchResult => {
           return (
-            <SourceFile key={searchResult} sourceFile={sourceFiles[getShortSourceFileName(sourceFiles, searchResult)]} expandModule={expandSearchResult} collapseModule={removeSearchResult} />
+            <ExploreItem key={searchResult} sourceFile={sourceFileKeyMap[getShortSourceFileName(sourceFileKeyMap, searchResult)]} expandModule={expandSearchResult} collapseModule={removeSearchResult} />
           )
         })}
       </> : <>
-        <SourceFile sourceFile={sourceFiles[getShortSourceFileName(sourceFiles, fileGraph.fileName)]} expandModule={expandModule} />
+        <ExploreItem sourceFile={sourceFileKeyMap[getShortSourceFileName(sourceFileKeyMap, fileGraph.fileName)]} expandModule={expandModule} />
         {expandedModules.map(expandedModule => {
           return (
-            <SourceFile key={expandedModule} sourceFile={sourceFiles[getShortSourceFileName(sourceFiles, expandedModule)]} expandModule={expandModule} collapseModule={collapseModule} />
+            <ExploreItem key={expandedModule} sourceFile={sourceFileKeyMap[getShortSourceFileName(sourceFileKeyMap, expandedModule)]} expandModule={expandModule} collapseModule={collapseModule} />
           )
         })}
       </>}

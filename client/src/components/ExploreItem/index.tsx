@@ -7,15 +7,15 @@ import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { SourceFileType } from '../../../../ast/generateAST'
+import { SourceFile } from '../../../../ast/generateAST'
 
-export default function SourceFile({ sourceFile, expandModule, collapseModule }: { sourceFile: SourceFileType, expandModule: Function, collapseModule?: Function }) {
+export default function ExploreItem({ sourceFile, expandModule, collapseModule }: { sourceFile: SourceFile, expandModule: Function, collapseModule?: Function }) {
   return (
     <>
       <Card className={css`
         margin: 10px;
         position: relative;
-      `} sx={{ minWidth: 275 }}>
+      `} sx={{ minWidth: 275, maxWidth: 800 }}>
         <CardContent>
           <Accordion>
             <AccordionSummary
