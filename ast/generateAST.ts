@@ -12,7 +12,7 @@ const tsConfigCompilerOptions = {
 
 export function generateAST(entryPoint?: string, tsConfigPath?: string): { sourceFiles: SourceFilesType, fileGraph: FileGraph } {
   const entryFilePath = join(process.cwd(), entryPoint || '')
-  const program = ts.createProgram(fileVariations(entryFilePath).filter((i) => existsSync(i)), grabConfig(tsConfigPath));
+  const program = ts.createProgram(fileVariations(entryFilePath).concat(entryPoint? fileVariations(entryPoint) : []).filter((i) => existsSync(i)), grabConfig(tsConfigPath));
   const programFileMap: ts.Map<ts.SourceFile> = (program as any).getFilesByNameMap();
   const sourceFiles: SourceFilesType = {};
 

@@ -22,6 +22,7 @@ program.description('An application for exploring typescript repositories')
     const ast = generateAST(filePath, config)
     fs.writeFileSync(join(__dirname, '../client/src/', 'fileGraph.json'), JSON.stringify(ast.fileGraph, null, 2))
     fs.writeFileSync(join(__dirname, '../client/src/', 'sourceFiles.json'), JSON.stringify(ast.sourceFiles, null, 2))
+    console.log('Find sourceFiles.json here:', join(__dirname, '../client/src/', 'sourceFiles.json'))
   } catch (err) {
     console.log(`Please check the path to your main typescript file. \nAdd the path as an argument. EG: tater-taste client/src\n\n`)
     throw err
