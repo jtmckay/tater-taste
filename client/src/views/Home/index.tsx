@@ -10,7 +10,7 @@ export default function Home () {
       min-width: 800px;
     `}>
       <h1 className={css`text-align: center;`}>Tater - TypeScript Abstract Syntax Tree Explorer</h1>
-      <Explorer fileGraph={fileGraph} sourceFiles={sourceFiles} />
+      <Explorer fileGraph={fileGraph} sourceFileKeyMap={sourceFiles} />
     </div>
   )
 }
