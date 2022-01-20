@@ -1,42 +1,19 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { css } from '@emotion/css'
 import TextField from '@mui/material/TextField';
 import { FileGraph, SourceFileKeyMap, SourceFile } from '../../../../ast/generateAST'
 import ExploreItem from '../ExploreItem'
-import { getShortSourceFileName } from '../../utils/findSourceFile'
+import { getFileNameWithoutExtension, searchSourceFileText } from '../../utils/sourceFileHelpers'
+import FabricCanvas from '../FabricCanvas'
+import SearchResult from '../SearchResult';
 
 let searchTimerThrottleId
 
-function matchFile (sourceFile: SourceFile, searchString: string): boolean {
-  return searchString.split(' ').every(searchText => {
-    const regex = new RegExp(searchText.replace(/([^a-z0-9])/gi, '\\$1'))
-    if (regex.test(sourceFile.fileName)) {
-      return true
-    }
-    if (regex.test(sourceFile.text)) {
-      return true
-    }
-  })
-}
-
 export default function Explorer ({ fileGraph, sourceFileKeyMap }: { fileGraph: FileGraph, sourceFileKeyMap: SourceFileKeyMap}) {
-  const [expandedModules, setExpandedModules] = useState<string[]>([])
+  const [fabricCanvas, setFabricCanvas] = useState()
+  const [pointerState, setPointerState] = useState()
   const [searchText, setSearchText] = useState('')
   const [searchResults, setSearchResults] = useState<string[]>([])
-
-  function expandModule (moduleName: string) {
-    if (expandedModules.includes(moduleName)) {
-      return
-    }
-    const newExpandedModules = [...expandedModules]
-    newExpandedModules.push(moduleName)
-    setExpandedModules(newExpandedModules)
-  }
-
-  function collapseModule (moduleName: string) {
-    const newExpandedModules = [...expandedModules].filter(i => i !== moduleName)
-    setExpandedModules(newExpandedModules)
-  }
 
   function expandSearchResult (moduleName: string) {
     if (searchResults.includes(moduleName)) {
@@ -53,44 +30,43 @@ export default function Explorer ({ fileGraph, sourceFileKeyMap }: { fileGraph: 
 
   return (
     <div className={css`
-      margin: 20px;
       display: flex;
-      flex-wrap: wrap;
+      position: relative;
       flex-direction: column;
+      flex-grow: 1;
     `}>
       <TextField id="outlined-basic" label="Search" variant="outlined" onChange={event => setSearchText(event.target.value)} onKeyPress={key => {
         function search () {
-          setSearchResults(Object.values(sourceFileKeyMap).reduce((accumulator, sourceFile) => {
-            if (matchFile(sourceFile, searchText)) {
-              accumulator.push(sourceFile.fileName)
-              return accumulator
-            } else {
-              return accumulator
-            }
-          }, []))
+          setSearchResults(searchSourceFileText(sourceFileKeyMap, searchText))
         }
         if (key.key === 'Enter' && searchText.length) {
           clearTimeout(searchTimerThrottleId)
           search()
         } else {
           clearTimeout(searchTimerThrottleId)
-          searchTimerThrottleId = setTimeout(search, 1000)
+          searchTimerThrottleId = setTimeout(search, 500)
         }
       }} />
-      {searchText ? <>
+      <FabricCanvas registerFabricCanvas={fabricCanvas => setFabricCanvas(fabricCanvas)}
+        registerPointerState={pointerState => setPointerState(pointerState)} />
+      <ExploreItem
+        sourceFileKeyMap={sourceFileKeyMap}
+        fabricCanvas={fabricCanvas}
+        pointerState={pointerState}
+        sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, fileGraph.fileName)]} />
+      {searchText && <div className={css`
+        position: absolute;
+        top: 56px;
+        left: 10px;
+        background: lightgray;
+        opacity: 80%;
+      `}>
         {searchResults.map(searchResult => {
           return (
-            <ExploreItem key={searchResult} sourceFile={sourceFileKeyMap[getShortSourceFileName(sourceFileKeyMap, searchResult)]} expandModule={expandSearchResult} collapseModule={removeSearchResult} />
+            <SearchResult key={searchResult} sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, searchResult)]} expandModule={expandSearchResult} collapseModule={removeSearchResult} />
           )
         })}
-      </> : <>
-        <ExploreItem sourceFile={sourceFileKeyMap[getShortSourceFileName(sourceFileKeyMap, fileGraph.fileName)]} expandModule={expandModule} />
-        {expandedModules.map(expandedModule => {
-          return (
-            <ExploreItem key={expandedModule} sourceFile={sourceFileKeyMap[getShortSourceFileName(sourceFileKeyMap, expandedModule)]} expandModule={expandModule} collapseModule={collapseModule} />
-          )
-        })}
-      </>}
+      </div>}
     </div>
   )
 }
