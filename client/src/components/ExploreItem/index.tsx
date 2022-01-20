@@ -3,18 +3,20 @@ import { fabric } from 'fabric';
 import { SourceFile, SourceFileKeyMap } from '../../../../ast/generateAST'
 // import { addToGroup } from '../../utils/fabricHelpers'
 import { getFileNameWithoutExtension, getShortenedFileName, searchSourceFileModules } from '../../utils/sourceFileHelpers'
-import { calculateTopLeft, onClick, onMove } from '../../utils/fabricHelpers';
+import { calculateTopLeft, getAnchorPoints, onClick, onMove } from '../../utils/fabricHelpers';
+import Arrow from '../Arrow';
 
 const cardWidth = 500
 const cardSpacing = 40
 
-export default function ExploreItem({ fabricCanvas, pointerState, isReference, isModule, referringModule, topAnchor, bottomAnchor, leftAnchor, rightAnchor, sourceFile, sourceFileKeyMap }:
-  { fabricCanvas: fabric.Canvas, pointerState, isReference?: boolean, isModule?: boolean, referringModule?: string, topAnchor?: number, bottomAnchor?: number, leftAnchor?: number, rightAnchor?: number, sourceFile: SourceFile, sourceFileKeyMap: SourceFileKeyMap }) {
+export default function ExploreItem({ fabricCanvas, pointerState, isReference, isModule, referringModule, parentHeight, parentPosition, topAnchor, bottomAnchor, leftAnchor, rightAnchor, sourceFile, sourceFileKeyMap }:
+  { fabricCanvas: fabric.Canvas, pointerState, isReference?: boolean, isModule?: boolean, referringModule?: string, parentHeight?: number, parentPosition?: { left: number, top: number}, topAnchor?: number, bottomAnchor?: number, leftAnchor?: number, rightAnchor?: number, sourceFile: SourceFile, sourceFileKeyMap: SourceFileKeyMap }) {
   const groupRef = useRef<fabric.Group>()
   const positionRef = useRef<{ left: number, top: number }>()
   const [ expandedReferences, setExpandedReferences ] = useState([])
   const [ expandedModules, setExpandedModules ] = useState<string[]>([])
   const [ cardHeight, setCardHeight ] = useState(400)
+  const [ arrow, setArrow ] = useState<{ lineAnchor?: { x: number; y: number; }; arrowPoint: { x: number; y: number; } }>()
 
   useEffect(() => {
     if (fabricCanvas && pointerState) {
@@ -119,6 +121,14 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
 
       onMove(group, () => {
         positionRef.current = { left: group.left, top: group.top }
+        setArrow(getAnchorPoints({
+          isModule,
+          cardWidth,
+          parentHeight,
+          parentPosition,
+          currentHeight: cardHeight,
+          currentPosition: positionRef.current
+        }))
       })
       // setTimeout(() => {
       //   addToGroup(fabricCanvas, pointerState, group, (x, y) => new fabric.Textbox('Other stuff', {
@@ -134,6 +144,17 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
       }
     }
   }, [fabricCanvas, pointerState, expandedModules, expandedReferences])
+
+  useEffect(() => {
+    setArrow(getAnchorPoints({
+      isModule,
+      cardWidth,
+      parentHeight,
+      parentPosition,
+      currentHeight: cardHeight,
+      currentPosition: positionRef.current
+    }))
+  }, [parentPosition, isModule, positionRef.current])
 
   function toggleReference (referenceName: string) {
     if (expandedReferences.includes(referenceName)) {
@@ -158,11 +179,17 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
   }
 
   return <>
+    {parentPosition && positionRef.current && <Arrow
+      fabricCanvas={fabricCanvas}
+      lineAnchor={arrow.lineAnchor}
+      arrowPoint={arrow.arrowPoint} />}
     {expandedReferences.map((reference, index) => <ExploreItem key={reference}
       isReference
       referringModule={sourceFile.fileName}
       leftAnchor={isModule ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth): positionRef.current.left + index * (10 + cardWidth)}
       bottomAnchor={positionRef.current.top - cardSpacing}
+      parentHeight={cardHeight}
+      parentPosition={positionRef.current}
       sourceFileKeyMap={sourceFileKeyMap}
       fabricCanvas={fabricCanvas}
       pointerState={pointerState}
@@ -172,6 +199,8 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
       referringModule={sourceFile.fileName}
       leftAnchor={isReference ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth)}
       topAnchor={positionRef.current.top + cardHeight + cardSpacing}
+      parentHeight={cardHeight}
+      parentPosition={positionRef.current}
       sourceFileKeyMap={sourceFileKeyMap}
       fabricCanvas={fabricCanvas}
       pointerState={pointerState}

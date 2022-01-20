@@ -63,3 +63,52 @@ export function onClick (fabricObject: fabric.Object, callback: Function) {
     down = false
   })
 }
+
+type AnchorPoints = {
+  lineAnchor?: {
+    x: number,
+    y: number
+  },
+  arrowPoint: {
+    x: number,
+    y: number
+  }
+}
+
+const offsetFromCard = 10
+
+export function getAnchorPoints ({
+  isModule,
+  cardWidth,
+  parentHeight,
+  parentPosition,
+  currentHeight,
+  currentPosition
+}: {
+  isModule: boolean,
+  cardWidth: number,
+  parentHeight: number,
+  parentPosition: { left: number, top: number },
+  currentHeight: number,
+  currentPosition: { left: number, top: number }
+}): AnchorPoints {
+  if (!currentPosition) return
+  
+  const res: AnchorPoints = {
+    arrowPoint: {
+      x: currentPosition.left + cardWidth / 2,
+      // if it's a module use the top of the card: else use the bottom
+      y: isModule ? currentPosition.top - offsetFromCard : currentHeight + currentPosition.top + offsetFromCard
+    }
+  }
+
+  if (!parentPosition) return res
+
+  res.lineAnchor = {
+    x: parentPosition.left + cardWidth / 2,
+    // if it's a module use the bottom of the parent card: else use the top
+    y: isModule ? parentHeight + parentPosition.top + offsetFromCard : parentPosition.top - offsetFromCard
+  }
+
+  return res
+}

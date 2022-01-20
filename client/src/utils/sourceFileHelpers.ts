@@ -51,7 +51,6 @@ export function searchSourceFileModules (sourceFileKeyMap: SourceFileKeyMap, fil
   return Object.values(sourceFileKeyMap).reduce((accumulator, sourceFile) => {
     if (sourceFile.modules.includes(fileName)) {
       accumulator.push(sourceFile.fileName)
-      console.log('MATCH')
       return accumulator
     } else {
       return accumulator
