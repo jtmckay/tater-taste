@@ -6,6 +6,7 @@ import { getFileNameWithoutExtension, getShortenedFileName, searchSourceFileModu
 import { calculateTopLeft, onClick, onMove } from '../../utils/fabricHelpers';
 
 const cardWidth = 500
+const cardSpacing = 40
 
 export default function ExploreItem({ fabricCanvas, pointerState, isReference, isModule, referringModule, topAnchor, bottomAnchor, leftAnchor, rightAnchor, sourceFile, sourceFileKeyMap }:
   { fabricCanvas: fabric.Canvas, pointerState, isReference?: boolean, isModule?: boolean, referringModule?: string, topAnchor?: number, bottomAnchor?: number, leftAnchor?: number, rightAnchor?: number, sourceFile: SourceFile, sourceFileKeyMap: SourceFileKeyMap }) {
@@ -17,33 +18,37 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
 
   useEffect(() => {
     if (fabricCanvas && pointerState) {
-      let lineOffset = 0
-      let margin = 10
+      let lineOffset = 20
+      let margin = 20
+      let lineSpacing = 10
 
       const groupArray = []
 
-      function addLine (text: string, height: number, handler?: any) {
+      function addLine (text: string, options: fabric.ITextboxOptions, handler?: any) {
         const textBox = new fabric.Textbox(text, {
           left: margin,
           top: lineOffset,
-          width: cardWidth - margin,
-          fontSize: height
+          width: cardWidth - margin * 2,
+          ...options
         })
         if (handler) {
           onClick(textBox, handler)
         }
         groupArray.push(textBox)
-        lineOffset += height + margin
+        lineOffset += (options.fontSize || 40) + lineSpacing
       }
 
-      addLine(getShortenedFileName(sourceFile.fileName), 24, () => {
+      addLine(getShortenedFileName(sourceFile.fileName), { fontSize: 24, fontWeight: 'bold' }, () => {
         console.log('clicked title: modal with code?')
       })
 
+      // Margin below header
+      lineOffset += 20
+
       const references = searchSourceFileModules(sourceFileKeyMap, sourceFile.fileName)
 
-      addLine('References:', 18, () => {
-        if (expandedReferences.length === references.length) {
+      addLine('References:', { fontSize: 18 }, () => {
+        if (expandedReferences.length === references.filter(i => i !== referringModule).length) {
           setExpandedReferences([])
         } else {
           const newExpandedReferences = [...expandedReferences]
@@ -56,14 +61,14 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
         }
       })
 
-      references.filter(i => i !== referringModule).forEach(reference => {
-        addLine(getShortenedFileName(reference), 18, () => {
+      references.filter(i => i !== referringModule).forEach((reference, index) => {
+        addLine(`  ${getShortenedFileName(reference)}`, { fontSize: 16, backgroundColor: index % 2 === 0 ? '#eee' : undefined }, () => {
           toggleReference(reference)
         })
       })
 
-      addLine('Modules:', 18, () => {
-        if (expandedModules.length === sourceFile.modules.length) {
+      addLine('Modules:', { fontSize: 18 }, () => {
+        if (expandedModules.length === sourceFile.modules.filter(i => i !== referringModule).length) {
           setExpandedModules([])
         } else {
           const newExpandedModules = [...expandedModules]
@@ -76,11 +81,17 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
         }
       })
 
-      sourceFile.modules.filter(i => i !== referringModule).forEach(module => {
-        addLine(getShortenedFileName(module), 18, () => {
+      sourceFile.modules.filter(i => i !== referringModule).forEach((module, index) => {
+        addLine(`  ${getShortenedFileName(module)}`, {
+          fontSize: 16,
+          backgroundColor: index % 2 === 0 ? '#eee' : undefined
+        }, () => {
           toggleModule(module)
         })
       })
+
+      // Bottom margin for card
+      lineOffset += 20
 
       const card = new fabric.Rect({
         height: lineOffset,
@@ -150,8 +161,8 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
     {expandedReferences.map((reference, index) => <ExploreItem key={reference}
       isReference
       referringModule={sourceFile.fileName}
-      leftAnchor={isModule ? positionRef.current.left + cardWidth + 60 + index * (10 + cardWidth): positionRef.current.left + index * (10 + cardWidth)}
-      bottomAnchor={positionRef.current.top - 30}
+      leftAnchor={isModule ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth): positionRef.current.left + index * (10 + cardWidth)}
+      bottomAnchor={positionRef.current.top - cardSpacing}
       sourceFileKeyMap={sourceFileKeyMap}
       fabricCanvas={fabricCanvas}
       pointerState={pointerState}
@@ -159,8 +170,8 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
     {expandedModules.map((module, index) => <ExploreItem key={module}
       isModule
       referringModule={sourceFile.fileName}
-      leftAnchor={isReference ? positionRef.current.left + cardWidth + 60 + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth)}
-      topAnchor={positionRef.current.top + cardHeight + 30}
+      leftAnchor={isReference ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth)}
+      topAnchor={positionRef.current.top + cardHeight + cardSpacing}
       sourceFileKeyMap={sourceFileKeyMap}
       fabricCanvas={fabricCanvas}
       pointerState={pointerState}

@@ -70,6 +70,9 @@ export default function FabricCanvas ({ registerFabricCanvas, registerPointerSta
     <div className={css`
       flex-grow: 1;
     `} ref={canvasContainerRef}
+      onWheel={event => {
+        fabricRef.current.relativePan({ x: 0, y: -1 * event.deltaY })
+      }}
       onContextMenu={e => e.preventDefault()}
       onMouseDown={startPan}
       onMouseUp={stopPan}

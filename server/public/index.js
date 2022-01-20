@@ -3,8 +3,22 @@
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __propIsEnum = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    if (__getOwnPropSymbols)
+      for (var prop of __getOwnPropSymbols(b)) {
+        if (__propIsEnum.call(b, prop))
+          __defNormalProp(a, prop, b[prop]);
+      }
+    return a;
+  };
   var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
@@ -63065,6 +63079,7 @@ const theme2 = createTheme({ palette: {
 
   // client/src/components/ExploreItem/index.tsx
   var cardWidth = 500;
+  var cardSpacing = 40;
   function ExploreItem({ fabricCanvas, pointerState, isReference, isModule, referringModule, topAnchor, bottomAnchor, leftAnchor, rightAnchor, sourceFile, sourceFileKeyMap }) {
     const groupRef = (0, import_react5.useRef)();
     const positionRef = (0, import_react5.useRef)();
@@ -63073,28 +63088,29 @@ const theme2 = createTheme({ palette: {
     const [cardHeight, setCardHeight] = (0, import_react5.useState)(400);
     (0, import_react5.useEffect)(() => {
       if (fabricCanvas && pointerState) {
-        let addLine = function(text, height, handler) {
-          const textBox = new import_fabric.fabric.Textbox(text, {
+        let addLine = function(text, options, handler) {
+          const textBox = new import_fabric.fabric.Textbox(text, __spreadValues({
             left: margin,
             top: lineOffset,
-            width: cardWidth - margin,
-            fontSize: height
-          });
+            width: cardWidth - margin * 2
+          }, options));
           if (handler) {
             onClick(textBox, handler);
           }
           groupArray.push(textBox);
-          lineOffset += height + margin;
+          lineOffset += (options.fontSize || 40) + lineSpacing;
         };
-        let lineOffset = 0;
-        let margin = 10;
+        let lineOffset = 20;
+        let margin = 20;
+        let lineSpacing = 10;
         const groupArray = [];
-        addLine(getShortenedFileName(sourceFile.fileName), 24, () => {
+        addLine(getShortenedFileName(sourceFile.fileName), { fontSize: 24, fontWeight: "bold" }, () => {
           console.log("clicked title: modal with code?");
         });
+        lineOffset += 20;
         const references = searchSourceFileModules(sourceFileKeyMap, sourceFile.fileName);
-        addLine("References:", 18, () => {
-          if (expandedReferences.length === references.length) {
+        addLine("References:", { fontSize: 18 }, () => {
+          if (expandedReferences.length === references.filter((i) => i !== referringModule).length) {
             setExpandedReferences([]);
           } else {
             const newExpandedReferences = [...expandedReferences];
@@ -63106,13 +63122,13 @@ const theme2 = createTheme({ palette: {
             setExpandedReferences(newExpandedReferences.filter((i) => i !== referringModule));
           }
         });
-        references.filter((i) => i !== referringModule).forEach((reference) => {
-          addLine(getShortenedFileName(reference), 18, () => {
+        references.filter((i) => i !== referringModule).forEach((reference, index) => {
+          addLine(`  ${getShortenedFileName(reference)}`, { fontSize: 16, backgroundColor: index % 2 === 0 ? "#eee" : void 0 }, () => {
             toggleReference(reference);
           });
         });
-        addLine("Modules:", 18, () => {
-          if (expandedModules.length === sourceFile.modules.length) {
+        addLine("Modules:", { fontSize: 18 }, () => {
+          if (expandedModules.length === sourceFile.modules.filter((i) => i !== referringModule).length) {
             setExpandedModules([]);
           } else {
             const newExpandedModules = [...expandedModules];
@@ -63124,11 +63140,15 @@ const theme2 = createTheme({ palette: {
             setExpandedModules(newExpandedModules.filter((i) => i !== referringModule));
           }
         });
-        sourceFile.modules.filter((i) => i !== referringModule).forEach((module) => {
-          addLine(getShortenedFileName(module), 18, () => {
+        sourceFile.modules.filter((i) => i !== referringModule).forEach((module, index) => {
+          addLine(`  ${getShortenedFileName(module)}`, {
+            fontSize: 16,
+            backgroundColor: index % 2 === 0 ? "#eee" : void 0
+          }, () => {
             toggleModule(module);
           });
         });
+        lineOffset += 20;
         const card = new import_fabric.fabric.Rect({
           height: lineOffset,
           width: cardWidth,
@@ -63183,8 +63203,8 @@ const theme2 = createTheme({ palette: {
       key: reference,
       isReference: true,
       referringModule: sourceFile.fileName,
-      leftAnchor: isModule ? positionRef.current.left + cardWidth + 60 + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth),
-      bottomAnchor: positionRef.current.top - 30,
+      leftAnchor: isModule ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth),
+      bottomAnchor: positionRef.current.top - cardSpacing,
       sourceFileKeyMap,
       fabricCanvas,
       pointerState,
@@ -63193,8 +63213,8 @@ const theme2 = createTheme({ palette: {
       key: module,
       isModule: true,
       referringModule: sourceFile.fileName,
-      leftAnchor: isReference ? positionRef.current.left + cardWidth + 60 + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth),
-      topAnchor: positionRef.current.top + cardHeight + 30,
+      leftAnchor: isReference ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth),
+      topAnchor: positionRef.current.top + cardHeight + cardSpacing,
       sourceFileKeyMap,
       fabricCanvas,
       pointerState,
@@ -63265,6 +63285,9 @@ const theme2 = createTheme({ palette: {
       flex-grow: 1;
     `,
       ref: canvasContainerRef,
+      onWheel: (event) => {
+        fabricRef.current.relativePan({ x: 0, y: -1 * event.deltaY });
+      },
       onContextMenu: (e) => e.preventDefault(),
       onMouseDown: startPan,
       onMouseUp: stopPan,
