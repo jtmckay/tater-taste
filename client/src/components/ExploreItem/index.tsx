@@ -1,15 +1,43 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { fabric } from 'fabric';
-import { SourceFile, SourceFileKeyMap } from '../../../../ast/generateAST'
+import { SourceFileKeyMap } from '../../../../ast/generateAST'
 import { getFileNameWithoutExtension, getShortenedFileName, searchSourceFileModules } from '../../utils/sourceFileHelpers'
 import { calculateTopLeft, getAnchorPoints, onClick, onMove } from '../../utils/fabricHelpers';
 import Arrow from '../Arrow';
 
 const cardWidth = 500
-const cardSpacing = 40
+const cardSpacing = 80
 
-export default function ExploreItem({ fabricCanvas, pointerState, isReference, isModule, referringModule, parentHeight, parentPosition, topAnchor, bottomAnchor, leftAnchor, rightAnchor, sourceFile, sourceFileKeyMap }:
-  { fabricCanvas: fabric.Canvas, pointerState, isReference?: boolean, isModule?: boolean, referringModule?: string, parentHeight?: number, parentPosition?: { left: number, top: number}, topAnchor?: number, bottomAnchor?: number, leftAnchor?: number, rightAnchor?: number, sourceFile: SourceFile, sourceFileKeyMap: SourceFileKeyMap }) {
+export default function ExploreItem({
+  fabricCanvas,
+  pointerState,
+  isReference,
+  isModule,
+  referringModule,
+  parentHeight,
+  parentPosition,
+  topAnchor,
+  bottomAnchor,
+  leftAnchor,
+  rightAnchor,
+  sourceFileName,
+  sourceFileKeyMap
+}:
+  {
+    fabricCanvas: fabric.Canvas,
+    pointerState,
+    isReference?: boolean,
+    isModule?: boolean,
+    referringModule?: string,
+    parentHeight?: number,
+    parentPosition?: { left: number, top: number},
+    topAnchor?: number,
+    bottomAnchor?: number,
+    leftAnchor?: number,
+    rightAnchor?: number,
+    sourceFileName: string,
+    sourceFileKeyMap: SourceFileKeyMap
+  }) {
   const groupRef = useRef<fabric.Group>()
   const positionRef = useRef<{ left: number, top: number }>()
   const [ expandedReferences, setExpandedReferences ] = useState([])
@@ -19,6 +47,7 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
 
   useEffect(() => {
     if (fabricCanvas && pointerState) {
+      const sourceFile = sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, sourceFileName)]
       let lineOffset = 20
       let margin = 20
       let lineSpacing = 10
@@ -39,14 +68,14 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
         lineOffset += (options.fontSize || 40) + lineSpacing
       }
 
-      addLine(getShortenedFileName(sourceFile.fileName), { fontSize: 24, fontWeight: 'bold' }, () => {
+      addLine(getShortenedFileName(sourceFileName), { fontSize: 24, fontWeight: 'bold' }, () => {
         console.log('clicked title: modal with code?')
       })
 
       // Margin below header
       lineOffset += 20
 
-      const references = searchSourceFileModules(sourceFileKeyMap, sourceFile.fileName)
+      const references = searchSourceFileModules(sourceFileKeyMap, sourceFileName)
 
       addLine('References:', { fontSize: 18 }, () => {
         if (expandedReferences.length === references.filter(i => i !== referringModule).length) {
@@ -130,11 +159,21 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
         }))
       })
       fabricCanvas.add(group)
+
       return () => {
         fabricCanvas.remove(group)
       }
     }
-  }, [fabricCanvas, pointerState, expandedModules, expandedReferences])
+  }, [fabricCanvas, sourceFileName, pointerState, expandedModules, expandedReferences])
+
+  useEffect(() => {
+    if (expandedModules.length) {
+      setExpandedModules([])
+    }
+    if (expandedReferences.length) {
+      setExpandedReferences([])
+    }
+  }, [sourceFileName])
 
   useEffect(() => {
     setArrow(getAnchorPoints({
@@ -177,7 +216,7 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
       arrowPoint={isModule ? arrow.arrowPoint : arrow.lineAnchor} />}
     {expandedReferences.map((reference, index) => <ExploreItem key={reference}
       isReference
-      referringModule={sourceFile.fileName}
+      referringModule={sourceFileName}
       leftAnchor={isModule ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth): positionRef.current.left + index * (10 + cardWidth)}
       bottomAnchor={positionRef.current.top - cardSpacing}
       parentHeight={cardHeight}
@@ -185,10 +224,10 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
       sourceFileKeyMap={sourceFileKeyMap}
       fabricCanvas={fabricCanvas}
       pointerState={pointerState}
-      sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, reference)]} />)}
+      sourceFileName={getFileNameWithoutExtension(sourceFileKeyMap, reference)} />)}
     {expandedModules.map((module, index) => <ExploreItem key={module}
       isModule
-      referringModule={sourceFile.fileName}
+      referringModule={sourceFileName}
       leftAnchor={isReference ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth)}
       topAnchor={positionRef.current.top + cardHeight + cardSpacing}
       parentHeight={cardHeight}
@@ -196,6 +235,6 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
       sourceFileKeyMap={sourceFileKeyMap}
       fabricCanvas={fabricCanvas}
       pointerState={pointerState}
-      sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, module)]} />)}
+      sourceFileName={getFileNameWithoutExtension(sourceFileKeyMap, module)} />)}
   </>
 }

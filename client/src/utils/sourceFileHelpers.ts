@@ -26,7 +26,7 @@ export function getShortenedFileName (fileName: string): string {
 
 function matchFileText (sourceFile: SourceFile, searchString: string): boolean {
   return searchString.split(' ').every(searchText => {
-    const regex = new RegExp(searchText.replace(/([^a-z0-9])/gi, '\\$1'))
+    const regex = new RegExp(searchText.replace(/([^a-z0-9])/g, '\\$1'), 'i')
     if (regex.test(sourceFile.fileName)) {
       return true
     }

@@ -36,7 +36,7 @@ export function calculateTopLeft (fabricCanvas: fabric.Canvas, cardWidth: number
   } else if (typeof(rightAnchor) !== 'undefined') {
     left = rightAnchor - cardWidth
   } else {
-    left = Math.floor((fabricCanvas.width - cardWidth) / 2)
+    left = Math.floor((fabricCanvas.width - cardWidth) / 4)
   }
 
   return { top, left }
