@@ -4,6 +4,15 @@ export function addToGroup (fabricCanvas: fabric.Canvas, pointerState, group: fa
   fabricCanvas.requestRenderAll()
 }
 
+// setTimeout(() => {
+//   addToGroup(fabricCanvas, pointerState, group, (x, y) => new fabric.Textbox('Other stuff', {
+//     left: x + 30,
+//     top: y + 30,
+//     width: 170,
+//     fontSize: 20,
+//   }))
+// }, 1000)
+
 export function getObjectOffset (pointerState, fabricObject: fabric.Object): { x: number, y: number } {
   const coords = fabricObject.calcCoords().tl
   return { x: coords.x - pointerState.relativeX, y: coords.y - pointerState.relativeY }

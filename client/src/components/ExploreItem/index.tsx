@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { fabric } from 'fabric';
 import { SourceFile, SourceFileKeyMap } from '../../../../ast/generateAST'
-// import { addToGroup } from '../../utils/fabricHelpers'
 import { getFileNameWithoutExtension, getShortenedFileName, searchSourceFileModules } from '../../utils/sourceFileHelpers'
 import { calculateTopLeft, getAnchorPoints, onClick, onMove } from '../../utils/fabricHelpers';
 import Arrow from '../Arrow';
@@ -130,14 +129,6 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
           currentPosition: positionRef.current
         }))
       })
-      // setTimeout(() => {
-      //   addToGroup(fabricCanvas, pointerState, group, (x, y) => new fabric.Textbox('Other stuff', {
-      //     left: x + 30,
-      //     top: y + 30,
-      //     width: 170,
-      //     fontSize: 20,
-      //   }))
-      // }, 1000)
       fabricCanvas.add(group)
       return () => {
         fabricCanvas.remove(group)
@@ -181,8 +172,9 @@ export default function ExploreItem({ fabricCanvas, pointerState, isReference, i
   return <>
     {parentPosition && positionRef.current && <Arrow
       fabricCanvas={fabricCanvas}
-      lineAnchor={arrow.lineAnchor}
-      arrowPoint={arrow.arrowPoint} />}
+      // If it is a reference, reverse the direction of the arrow
+      lineAnchor={isModule ? arrow.lineAnchor : arrow.arrowPoint}
+      arrowPoint={isModule ? arrow.arrowPoint : arrow.lineAnchor} />}
     {expandedReferences.map((reference, index) => <ExploreItem key={reference}
       isReference
       referringModule={sourceFile.fileName}

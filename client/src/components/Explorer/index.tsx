@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import { css } from '@emotion/css'
 import TextField from '@mui/material/TextField';
-import { FileGraph, SourceFileKeyMap, SourceFile } from '../../../../ast/generateAST'
+import { FileGraph, SourceFileKeyMap } from '../../../../ast/generateAST'
 import ExploreItem from '../ExploreItem'
 import { getFileNameWithoutExtension, searchSourceFileText } from '../../utils/sourceFileHelpers'
 import FabricCanvas from '../FabricCanvas'

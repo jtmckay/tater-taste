@@ -73,7 +73,7 @@
   },
   "/home/taylor/GitHub/tater-taste/client/src/components/Explorer": {
     "fileName": "/home/taylor/GitHub/tater-taste/client/src/components/Explorer/index.tsx",
-    "text": "import React, { useRef, useState } from 'react'\nimport { css } from '@emotion/css'\nimport TextField from '@mui/material/TextField';\nimport { FileGraph, SourceFileKeyMap, SourceFile } from '../../../../ast/generateAST'\nimport ExploreItem from '../ExploreItem'\nimport { getFileNameWithoutExtension, searchSourceFileText } from '../../utils/sourceFileHelpers'\nimport FabricCanvas from '../FabricCanvas'\nimport SearchResult from '../SearchResult';\n\nlet searchTimerThrottleId\n\nexport default function Explorer ({ fileGraph, sourceFileKeyMap }: { fileGraph: FileGraph, sourceFileKeyMap: SourceFileKeyMap}) {\n  const [fabricCanvas, setFabricCanvas] = useState()\n  const [pointerState, setPointerState] = useState()\n  const [searchText, setSearchText] = useState('')\n  const [searchResults, setSearchResults] = useState<string[]>([])\n\n  function expandSearchResult (moduleName: string) {\n    if (searchResults.includes(moduleName)) {\n      return\n    }\n    const newSearchResults = [...searchResults]\n    newSearchResults.push(moduleName)\n    setSearchResults(newSearchResults)\n  }\n  function removeSearchResult (moduleName: string) {\n    const newSearchResults = [...searchResults].filter(i => i !== moduleName)\n    setSearchResults(newSearchResults)\n  }\n\n  return (\n    <div className={css`\n      display: flex;\n      position: relative;\n      flex-direction: column;\n      flex-grow: 1;\n    `}>\n      <TextField id=\"outlined-basic\" label=\"Search\" variant=\"outlined\" onChange={event => setSearchText(event.target.value)} onKeyPress={key => {\n        function search () {\n          setSearchResults(searchSourceFileText(sourceFileKeyMap, searchText))\n        }\n        if (key.key === 'Enter' && searchText.length) {\n          clearTimeout(searchTimerThrottleId)\n          search()\n        } else {\n          clearTimeout(searchTimerThrottleId)\n          searchTimerThrottleId = setTimeout(search, 500)\n        }\n      }} />\n      <FabricCanvas registerFabricCanvas={fabricCanvas => setFabricCanvas(fabricCanvas)}\n        registerPointerState={pointerState => setPointerState(pointerState)} />\n      <ExploreItem\n        sourceFileKeyMap={sourceFileKeyMap}\n        fabricCanvas={fabricCanvas}\n        pointerState={pointerState}\n        sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, fileGraph.fileName)]} />\n      {searchText && <div className={css`\n        position: absolute;\n        top: 56px;\n        left: 10px;\n        background: lightgray;\n        opacity: 80%;\n      `}>\n        {searchResults.map(searchResult => {\n          return (\n            <SearchResult key={searchResult} sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, searchResult)]} expandModule={expandSearchResult} collapseModule={removeSearchResult} />\n          )\n        })}\n      </div>}\n    </div>\n  )\n}\n",
+    "text": "import React, { useState } from 'react'\nimport { css } from '@emotion/css'\nimport TextField from '@mui/material/TextField';\nimport { FileGraph, SourceFileKeyMap } from '../../../../ast/generateAST'\nimport ExploreItem from '../ExploreItem'\nimport { getFileNameWithoutExtension, searchSourceFileText } from '../../utils/sourceFileHelpers'\nimport FabricCanvas from '../FabricCanvas'\nimport SearchResult from '../SearchResult';\n\nlet searchTimerThrottleId\n\nexport default function Explorer ({ fileGraph, sourceFileKeyMap }: { fileGraph: FileGraph, sourceFileKeyMap: SourceFileKeyMap}) {\n  const [fabricCanvas, setFabricCanvas] = useState()\n  const [pointerState, setPointerState] = useState()\n  const [searchText, setSearchText] = useState('')\n  const [searchResults, setSearchResults] = useState<string[]>([])\n\n  function expandSearchResult (moduleName: string) {\n    if (searchResults.includes(moduleName)) {\n      return\n    }\n    const newSearchResults = [...searchResults]\n    newSearchResults.push(moduleName)\n    setSearchResults(newSearchResults)\n  }\n  function removeSearchResult (moduleName: string) {\n    const newSearchResults = [...searchResults].filter(i => i !== moduleName)\n    setSearchResults(newSearchResults)\n  }\n\n  return (\n    <div className={css`\n      display: flex;\n      position: relative;\n      flex-direction: column;\n      flex-grow: 1;\n    `}>\n      <TextField id=\"outlined-basic\" label=\"Search\" variant=\"outlined\" onChange={event => setSearchText(event.target.value)} onKeyPress={key => {\n        function search () {\n          setSearchResults(searchSourceFileText(sourceFileKeyMap, searchText))\n        }\n        if (key.key === 'Enter' && searchText.length) {\n          clearTimeout(searchTimerThrottleId)\n          search()\n        } else {\n          clearTimeout(searchTimerThrottleId)\n          searchTimerThrottleId = setTimeout(search, 500)\n        }\n      }} />\n      <FabricCanvas registerFabricCanvas={fabricCanvas => setFabricCanvas(fabricCanvas)}\n        registerPointerState={pointerState => setPointerState(pointerState)} />\n      <ExploreItem\n        sourceFileKeyMap={sourceFileKeyMap}\n        fabricCanvas={fabricCanvas}\n        pointerState={pointerState}\n        sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, fileGraph.fileName)]} />\n      {searchText && <div className={css`\n        position: absolute;\n        top: 56px;\n        left: 10px;\n        background: lightgray;\n        opacity: 80%;\n      `}>\n        {searchResults.map(searchResult => {\n          return (\n            <SearchResult key={searchResult} sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, searchResult)]} expandModule={expandSearchResult} collapseModule={removeSearchResult} />\n          )\n        })}\n      </div>}\n    </div>\n  )\n}\n",
     "modules": [
       "/home/taylor/GitHub/tater-taste/ast/generateAST.ts",
       "/home/taylor/GitHub/tater-taste/client/src/components/ExploreItem/index.tsx",
@@ -84,61 +84,61 @@
     "statements": [
       {
         "pos": 0,
-        "end": 47,
+        "end": 39,
         "name": "react",
         "type": "module"
       },
       {
-        "pos": 47,
-        "end": 82,
+        "pos": 39,
+        "end": 74,
         "name": "@emotion/css",
         "type": "module"
       },
       {
-        "pos": 82,
-        "end": 131,
+        "pos": 74,
+        "end": 123,
         "name": "@mui/material/TextField",
         "type": "module"
       },
       {
-        "pos": 131,
-        "end": 217,
+        "pos": 123,
+        "end": 197,
         "name": "../../../../ast/generateAST",
         "type": "module"
       },
       {
-        "pos": 217,
-        "end": 258,
+        "pos": 197,
+        "end": 238,
         "name": "../ExploreItem",
         "type": "module"
       },
       {
-        "pos": 258,
-        "end": 356,
+        "pos": 238,
+        "end": 336,
         "name": "../../utils/sourceFileHelpers",
         "type": "module"
       },
       {
-        "pos": 356,
-        "end": 399,
+        "pos": 336,
+        "end": 379,
         "name": "../FabricCanvas",
         "type": "module"
       },
       {
-        "pos": 399,
-        "end": 443,
+        "pos": 379,
+        "end": 423,
         "name": "../SearchResult",
         "type": "module"
       },
       {
-        "pos": 443,
-        "end": 470,
+        "pos": 423,
+        "end": 450,
         "name": "searchTimerThrottleId",
         "type": "declaration"
       },
       {
-        "pos": 470,
-        "end": 2829,
+        "pos": 450,
+        "end": 2809,
         "name": "Explorer",
         "type": "statement"
       }
@@ -243,7 +243,7 @@
   },
   "/home/taylor/GitHub/tater-taste/client/src/components/ExploreItem": {
     "fileName": "/home/taylor/GitHub/tater-taste/client/src/components/ExploreItem/index.tsx",
-    "text": "import React, { useEffect, useRef, useState } from 'react';\nimport { fabric } from 'fabric';\nimport { SourceFile, SourceFileKeyMap } from '../../../../ast/generateAST'\n// import { addToGroup } from '../../utils/fabricHelpers'\nimport { getFileNameWithoutExtension, getShortenedFileName, searchSourceFileModules } from '../../utils/sourceFileHelpers'\nimport { calculateTopLeft, getAnchorPoints, onClick, onMove } from '../../utils/fabricHelpers';\nimport Arrow from '../Arrow';\n\nconst cardWidth = 500\nconst cardSpacing = 40\n\nexport default function ExploreItem({ fabricCanvas, pointerState, isReference, isModule, referringModule, parentHeight, parentPosition, topAnchor, bottomAnchor, leftAnchor, rightAnchor, sourceFile, sourceFileKeyMap }:\n  { fabricCanvas: fabric.Canvas, pointerState, isReference?: boolean, isModule?: boolean, referringModule?: string, parentHeight?: number, parentPosition?: { left: number, top: number}, topAnchor?: number, bottomAnchor?: number, leftAnchor?: number, rightAnchor?: number, sourceFile: SourceFile, sourceFileKeyMap: SourceFileKeyMap }) {\n  const groupRef = useRef<fabric.Group>()\n  const positionRef = useRef<{ left: number, top: number }>()\n  const [ expandedReferences, setExpandedReferences ] = useState([])\n  const [ expandedModules, setExpandedModules ] = useState<string[]>([])\n  const [ cardHeight, setCardHeight ] = useState(400)\n  const [ arrow, setArrow ] = useState<{ lineAnchor?: { x: number; y: number; }; arrowPoint: { x: number; y: number; } }>()\n\n  useEffect(() => {\n    if (fabricCanvas && pointerState) {\n      let lineOffset = 20\n      let margin = 20\n      let lineSpacing = 10\n\n      const groupArray = []\n\n      function addLine (text: string, options: fabric.ITextboxOptions, handler?: any) {\n        const textBox = new fabric.Textbox(text, {\n          left: margin,\n          top: lineOffset,\n          width: cardWidth - margin * 2,\n          ...options\n        })\n        if (handler) {\n          onClick(textBox, handler)\n        }\n        groupArray.push(textBox)\n        lineOffset += (options.fontSize || 40) + lineSpacing\n      }\n\n      addLine(getShortenedFileName(sourceFile.fileName), { fontSize: 24, fontWeight: 'bold' }, () => {\n        console.log('clicked title: modal with code?')\n      })\n\n      // Margin below header\n      lineOffset += 20\n\n      const references = searchSourceFileModules(sourceFileKeyMap, sourceFile.fileName)\n\n      addLine('References:', { fontSize: 18 }, () => {\n        if (expandedReferences.length === references.filter(i => i !== referringModule).length) {\n          setExpandedReferences([])\n        } else {\n          const newExpandedReferences = [...expandedReferences]\n          references.forEach(reference => {\n            if (!expandedReferences.includes(reference)) {\n              newExpandedReferences.push(reference)\n            }\n          })\n          setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n        }\n      })\n\n      references.filter(i => i !== referringModule).forEach((reference, index) => {\n        addLine(`  ${getShortenedFileName(reference)}`, { fontSize: 16, backgroundColor: index % 2 === 0 ? '#eee' : undefined }, () => {\n          toggleReference(reference)\n        })\n      })\n\n      addLine('Modules:', { fontSize: 18 }, () => {\n        if (expandedModules.length === sourceFile.modules.filter(i => i !== referringModule).length) {\n          setExpandedModules([])\n        } else {\n          const newExpandedModules = [...expandedModules]\n          sourceFile.modules.forEach(module => {\n            if (!expandedModules.includes(module)) {\n              newExpandedModules.push(module)\n            }\n          })\n          setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n        }\n      })\n\n      sourceFile.modules.filter(i => i !== referringModule).forEach((module, index) => {\n        addLine(`  ${getShortenedFileName(module)}`, {\n          fontSize: 16,\n          backgroundColor: index % 2 === 0 ? '#eee' : undefined\n        }, () => {\n          toggleModule(module)\n        })\n      })\n\n      // Bottom margin for card\n      lineOffset += 20\n\n      const card = new fabric.Rect({\n        height: lineOffset,\n        width: cardWidth,\n        fill: '#fff',\n        rx: 10,\n        ry: 10,\n        shadow: new fabric.Shadow({\n          blur: 10,\n        })\n      });\n\n      setCardHeight(lineOffset)\n      if (!positionRef.current) {\n        positionRef.current = calculateTopLeft(fabricCanvas, cardWidth + 30, lineOffset, topAnchor, bottomAnchor, leftAnchor, rightAnchor)\n      }\n\n      const group = new fabric.Group([card, ...groupArray], {\n        hasControls: false,\n        left: positionRef.current.left,\n        top: positionRef.current.top,\n        subTargetCheck: true\n      });\n      groupRef.current = group\n\n      onMove(group, () => {\n        positionRef.current = { left: group.left, top: group.top }\n        setArrow(getAnchorPoints({\n          isModule,\n          cardWidth,\n          parentHeight,\n          parentPosition,\n          currentHeight: cardHeight,\n          currentPosition: positionRef.current\n        }))\n      })\n      // setTimeout(() => {\n      //   addToGroup(fabricCanvas, pointerState, group, (x, y) => new fabric.Textbox('Other stuff', {\n      //     left: x + 30,\n      //     top: y + 30,\n      //     width: 170,\n      //     fontSize: 20,\n      //   }))\n      // }, 1000)\n      fabricCanvas.add(group)\n      return () => {\n        fabricCanvas.remove(group)\n      }\n    }\n  }, [fabricCanvas, pointerState, expandedModules, expandedReferences])\n\n  useEffect(() => {\n    setArrow(getAnchorPoints({\n      isModule,\n      cardWidth,\n      parentHeight,\n      parentPosition,\n      currentHeight: cardHeight,\n      currentPosition: positionRef.current\n    }))\n  }, [parentPosition, isModule, positionRef.current])\n\n  function toggleReference (referenceName: string) {\n    if (expandedReferences.includes(referenceName)) {\n      const newExpandedReferences = [...expandedReferences].filter(i => i !== referenceName)\n      setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n    } else {\n      const newExpandedReferences = [...expandedReferences]\n      newExpandedReferences.push(referenceName)\n      setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n    }\n  }\n\n  function toggleModule (moduleName: string) {\n    if (expandedModules.includes(moduleName)) {\n      const newExpandedModules = [...expandedModules].filter(i => i !== moduleName)\n      setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n    } else {\n      const newExpandedModules = [...expandedModules]\n      newExpandedModules.push(moduleName)\n      setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n    }\n  }\n\n  return <>\n    {parentPosition && positionRef.current && <Arrow\n      fabricCanvas={fabricCanvas}\n      lineAnchor={arrow.lineAnchor}\n      arrowPoint={arrow.arrowPoint} />}\n    {expandedReferences.map((reference, index) => <ExploreItem key={reference}\n      isReference\n      referringModule={sourceFile.fileName}\n      leftAnchor={isModule ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth): positionRef.current.left + index * (10 + cardWidth)}\n      bottomAnchor={positionRef.current.top - cardSpacing}\n      parentHeight={cardHeight}\n      parentPosition={positionRef.current}\n      sourceFileKeyMap={sourceFileKeyMap}\n      fabricCanvas={fabricCanvas}\n      pointerState={pointerState}\n      sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, reference)]} />)}\n    {expandedModules.map((module, index) => <ExploreItem key={module}\n      isModule\n      referringModule={sourceFile.fileName}\n      leftAnchor={isReference ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth)}\n      topAnchor={positionRef.current.top + cardHeight + cardSpacing}\n      parentHeight={cardHeight}\n      parentPosition={positionRef.current}\n      sourceFileKeyMap={sourceFileKeyMap}\n      fabricCanvas={fabricCanvas}\n      pointerState={pointerState}\n      sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, module)]} />)}\n  </>\n}\n",
+    "text": "import React, { useEffect, useRef, useState } from 'react';\nimport { fabric } from 'fabric';\nimport { SourceFile, SourceFileKeyMap } from '../../../../ast/generateAST'\nimport { getFileNameWithoutExtension, getShortenedFileName, searchSourceFileModules } from '../../utils/sourceFileHelpers'\nimport { calculateTopLeft, getAnchorPoints, onClick, onMove } from '../../utils/fabricHelpers';\nimport Arrow from '../Arrow';\n\nconst cardWidth = 500\nconst cardSpacing = 40\n\nexport default function ExploreItem({ fabricCanvas, pointerState, isReference, isModule, referringModule, parentHeight, parentPosition, topAnchor, bottomAnchor, leftAnchor, rightAnchor, sourceFile, sourceFileKeyMap }:\n  { fabricCanvas: fabric.Canvas, pointerState, isReference?: boolean, isModule?: boolean, referringModule?: string, parentHeight?: number, parentPosition?: { left: number, top: number}, topAnchor?: number, bottomAnchor?: number, leftAnchor?: number, rightAnchor?: number, sourceFile: SourceFile, sourceFileKeyMap: SourceFileKeyMap }) {\n  const groupRef = useRef<fabric.Group>()\n  const positionRef = useRef<{ left: number, top: number }>()\n  const [ expandedReferences, setExpandedReferences ] = useState([])\n  const [ expandedModules, setExpandedModules ] = useState<string[]>([])\n  const [ cardHeight, setCardHeight ] = useState(400)\n  const [ arrow, setArrow ] = useState<{ lineAnchor?: { x: number; y: number; }; arrowPoint: { x: number; y: number; } }>()\n\n  useEffect(() => {\n    if (fabricCanvas && pointerState) {\n      let lineOffset = 20\n      let margin = 20\n      let lineSpacing = 10\n\n      const groupArray = []\n\n      function addLine (text: string, options: fabric.ITextboxOptions, handler?: any) {\n        const textBox = new fabric.Textbox(text, {\n          left: margin,\n          top: lineOffset,\n          width: cardWidth - margin * 2,\n          ...options\n        })\n        if (handler) {\n          onClick(textBox, handler)\n        }\n        groupArray.push(textBox)\n        lineOffset += (options.fontSize || 40) + lineSpacing\n      }\n\n      addLine(getShortenedFileName(sourceFile.fileName), { fontSize: 24, fontWeight: 'bold' }, () => {\n        console.log('clicked title: modal with code?')\n      })\n\n      // Margin below header\n      lineOffset += 20\n\n      const references = searchSourceFileModules(sourceFileKeyMap, sourceFile.fileName)\n\n      addLine('References:', { fontSize: 18 }, () => {\n        if (expandedReferences.length === references.filter(i => i !== referringModule).length) {\n          setExpandedReferences([])\n        } else {\n          const newExpandedReferences = [...expandedReferences]\n          references.forEach(reference => {\n            if (!expandedReferences.includes(reference)) {\n              newExpandedReferences.push(reference)\n            }\n          })\n          setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n        }\n      })\n\n      references.filter(i => i !== referringModule).forEach((reference, index) => {\n        addLine(`  ${getShortenedFileName(reference)}`, { fontSize: 16, backgroundColor: index % 2 === 0 ? '#eee' : undefined }, () => {\n          toggleReference(reference)\n        })\n      })\n\n      addLine('Modules:', { fontSize: 18 }, () => {\n        if (expandedModules.length === sourceFile.modules.filter(i => i !== referringModule).length) {\n          setExpandedModules([])\n        } else {\n          const newExpandedModules = [...expandedModules]\n          sourceFile.modules.forEach(module => {\n            if (!expandedModules.includes(module)) {\n              newExpandedModules.push(module)\n            }\n          })\n          setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n        }\n      })\n\n      sourceFile.modules.filter(i => i !== referringModule).forEach((module, index) => {\n        addLine(`  ${getShortenedFileName(module)}`, {\n          fontSize: 16,\n          backgroundColor: index % 2 === 0 ? '#eee' : undefined\n        }, () => {\n          toggleModule(module)\n        })\n      })\n\n      // Bottom margin for card\n      lineOffset += 20\n\n      const card = new fabric.Rect({\n        height: lineOffset,\n        width: cardWidth,\n        fill: '#fff',\n        rx: 10,\n        ry: 10,\n        shadow: new fabric.Shadow({\n          blur: 10,\n        })\n      });\n\n      setCardHeight(lineOffset)\n      if (!positionRef.current) {\n        positionRef.current = calculateTopLeft(fabricCanvas, cardWidth + 30, lineOffset, topAnchor, bottomAnchor, leftAnchor, rightAnchor)\n      }\n\n      const group = new fabric.Group([card, ...groupArray], {\n        hasControls: false,\n        left: positionRef.current.left,\n        top: positionRef.current.top,\n        subTargetCheck: true\n      });\n      groupRef.current = group\n\n      onMove(group, () => {\n        positionRef.current = { left: group.left, top: group.top }\n        setArrow(getAnchorPoints({\n          isModule,\n          cardWidth,\n          parentHeight,\n          parentPosition,\n          currentHeight: cardHeight,\n          currentPosition: positionRef.current\n        }))\n      })\n      fabricCanvas.add(group)\n      return () => {\n        fabricCanvas.remove(group)\n      }\n    }\n  }, [fabricCanvas, pointerState, expandedModules, expandedReferences])\n\n  useEffect(() => {\n    setArrow(getAnchorPoints({\n      isModule,\n      cardWidth,\n      parentHeight,\n      parentPosition,\n      currentHeight: cardHeight,\n      currentPosition: positionRef.current\n    }))\n  }, [parentPosition, isModule, positionRef.current])\n\n  function toggleReference (referenceName: string) {\n    if (expandedReferences.includes(referenceName)) {\n      const newExpandedReferences = [...expandedReferences].filter(i => i !== referenceName)\n      setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n    } else {\n      const newExpandedReferences = [...expandedReferences]\n      newExpandedReferences.push(referenceName)\n      setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n    }\n  }\n\n  function toggleModule (moduleName: string) {\n    if (expandedModules.includes(moduleName)) {\n      const newExpandedModules = [...expandedModules].filter(i => i !== moduleName)\n      setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n    } else {\n      const newExpandedModules = [...expandedModules]\n      newExpandedModules.push(moduleName)\n      setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n    }\n  }\n\n  return <>\n    {parentPosition && positionRef.current && <Arrow\n      fabricCanvas={fabricCanvas}\n      // If it is a reference, reverse the direction of the arrow\n      lineAnchor={isModule ? arrow.lineAnchor : arrow.arrowPoint}\n      arrowPoint={isModule ? arrow.arrowPoint : arrow.lineAnchor} />}\n    {expandedReferences.map((reference, index) => <ExploreItem key={reference}\n      isReference\n      referringModule={sourceFile.fileName}\n      leftAnchor={isModule ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth): positionRef.current.left + index * (10 + cardWidth)}\n      bottomAnchor={positionRef.current.top - cardSpacing}\n      parentHeight={cardHeight}\n      parentPosition={positionRef.current}\n      sourceFileKeyMap={sourceFileKeyMap}\n      fabricCanvas={fabricCanvas}\n      pointerState={pointerState}\n      sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, reference)]} />)}\n    {expandedModules.map((module, index) => <ExploreItem key={module}\n      isModule\n      referringModule={sourceFile.fileName}\n      leftAnchor={isReference ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth)}\n      topAnchor={positionRef.current.top + cardHeight + cardSpacing}\n      parentHeight={cardHeight}\n      parentPosition={positionRef.current}\n      sourceFileKeyMap={sourceFileKeyMap}\n      fabricCanvas={fabricCanvas}\n      pointerState={pointerState}\n      sourceFile={sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, module)]} />)}\n  </>\n}\n",
     "modules": [
       "/home/taylor/GitHub/tater-taste/ast/generateAST.ts",
       "/home/taylor/GitHub/tater-taste/client/src/utils/sourceFileHelpers.ts",
@@ -271,37 +271,37 @@
       },
       {
         "pos": 167,
-        "end": 348,
+        "end": 290,
         "name": "../../utils/sourceFileHelpers",
         "type": "module"
       },
       {
-        "pos": 348,
-        "end": 444,
+        "pos": 290,
+        "end": 386,
         "name": "../../utils/fabricHelpers",
         "type": "module"
       },
       {
-        "pos": 444,
-        "end": 474,
+        "pos": 386,
+        "end": 416,
         "name": "../Arrow",
         "type": "module"
       },
       {
-        "pos": 474,
-        "end": 497,
+        "pos": 416,
+        "end": 439,
         "name": "cardWidth",
         "type": "declaration"
       },
       {
-        "pos": 497,
-        "end": 520,
+        "pos": 439,
+        "end": 462,
         "name": "cardSpacing",
         "type": "declaration"
       },
       {
-        "pos": 520,
-        "end": 8296,
+        "pos": 462,
+        "end": 8095,
         "name": "ExploreItem",
         "type": "statement"
       }
@@ -354,7 +354,7 @@
   },
   "/home/taylor/GitHub/tater-taste/client/src/utils/fabricHelpers": {
     "fileName": "/home/taylor/GitHub/tater-taste/client/src/utils/fabricHelpers.ts",
-    "text": "export function addToGroup (fabricCanvas: fabric.Canvas, pointerState, group: fabric.Group, createItem: (xOffset: number, yOffset: number) => fabric.Object) {\n  const offset = getObjectOffset(pointerState, group)\n  group.addWithUpdate(createItem(offset.x, offset.y))\n  fabricCanvas.requestRenderAll()\n}\n\nexport function getObjectOffset (pointerState, fabricObject: fabric.Object): { x: number, y: number } {\n  const coords = fabricObject.calcCoords().tl\n  return { x: coords.x - pointerState.relativeX, y: coords.y - pointerState.relativeY }\n}\n\nexport function calculateTopLeft (fabricCanvas: fabric.Canvas, cardWidth: number, cardHeight: number, topAnchor?: number, bottomAnchor?: number, leftAnchor?: number, rightAnchor?: number): { top: number, left: number } {\n  if (!fabricCanvas) return\n  let top\n  let left\n\n  if (typeof(topAnchor) !== 'undefined') {\n    top = topAnchor\n  } else if (typeof(bottomAnchor) !== 'undefined') {\n    top = bottomAnchor - cardHeight\n  } else {\n    top = Math.floor((fabricCanvas.height - cardHeight) / 4)\n  }\n\n  if (typeof(leftAnchor) !== 'undefined') {\n    left = leftAnchor\n  } else if (typeof(rightAnchor) !== 'undefined') {\n    left = rightAnchor - cardWidth\n  } else {\n    left = Math.floor((fabricCanvas.width - cardWidth) / 2)\n  }\n\n  return { top, left }\n}\n\nexport function onMove (fabricObject: fabric.Object, callback: Function) {\n  let down = false\n  fabricObject.on('mousedown', () => {\n    down = true\n  })\n  fabricObject.on('mousemove', () => {\n    if (down) {\n      callback()\n    }\n  })\n  fabricObject.on('mouseup', () => {\n    down = false\n  })\n}\n\nexport function onClick (fabricObject: fabric.Object, callback: Function) {\n  let down = false\n  fabricObject.on('mousedown', () => {\n    down = true\n  })\n  fabricObject.on('mousemove', () => {\n    down = false\n  })\n  fabricObject.on('mouseup', () => {\n    if (down) {\n      callback()\n    }\n    down = false\n  })\n}\n\ntype AnchorPoints = {\n  lineAnchor?: {\n    x: number,\n    y: number\n  },\n  arrowPoint: {\n    x: number,\n    y: number\n  }\n}\n\nconst offsetFromCard = 10\n\nexport function getAnchorPoints ({\n  isModule,\n  cardWidth,\n  parentHeight,\n  parentPosition,\n  currentHeight,\n  currentPosition\n}: {\n  isModule: boolean,\n  cardWidth: number,\n  parentHeight: number,\n  parentPosition: { left: number, top: number },\n  currentHeight: number,\n  currentPosition: { left: number, top: number }\n}): AnchorPoints {\n  if (!currentPosition) return\n  \n  const res: AnchorPoints = {\n    arrowPoint: {\n      x: currentPosition.left + cardWidth / 2,\n      // if it's a module use the top of the card: else use the bottom\n      y: isModule ? currentPosition.top - offsetFromCard : currentHeight + currentPosition.top + offsetFromCard\n    }\n  }\n\n  if (!parentPosition) return res\n\n  res.lineAnchor = {\n    x: parentPosition.left + cardWidth / 2,\n    // if it's a module use the bottom of the parent card: else use the top\n    y: isModule ? parentHeight + parentPosition.top + offsetFromCard : parentPosition.top - offsetFromCard\n  }\n\n  return res\n}\n",
+    "text": "export function addToGroup (fabricCanvas: fabric.Canvas, pointerState, group: fabric.Group, createItem: (xOffset: number, yOffset: number) => fabric.Object) {\n  const offset = getObjectOffset(pointerState, group)\n  group.addWithUpdate(createItem(offset.x, offset.y))\n  fabricCanvas.requestRenderAll()\n}\n\n// setTimeout(() => {\n//   addToGroup(fabricCanvas, pointerState, group, (x, y) => new fabric.Textbox('Other stuff', {\n//     left: x + 30,\n//     top: y + 30,\n//     width: 170,\n//     fontSize: 20,\n//   }))\n// }, 1000)\n\nexport function getObjectOffset (pointerState, fabricObject: fabric.Object): { x: number, y: number } {\n  const coords = fabricObject.calcCoords().tl\n  return { x: coords.x - pointerState.relativeX, y: coords.y - pointerState.relativeY }\n}\n\nexport function calculateTopLeft (fabricCanvas: fabric.Canvas, cardWidth: number, cardHeight: number, topAnchor?: number, bottomAnchor?: number, leftAnchor?: number, rightAnchor?: number): { top: number, left: number } {\n  if (!fabricCanvas) return\n  let top\n  let left\n\n  if (typeof(topAnchor) !== 'undefined') {\n    top = topAnchor\n  } else if (typeof(bottomAnchor) !== 'undefined') {\n    top = bottomAnchor - cardHeight\n  } else {\n    top = Math.floor((fabricCanvas.height - cardHeight) / 4)\n  }\n\n  if (typeof(leftAnchor) !== 'undefined') {\n    left = leftAnchor\n  } else if (typeof(rightAnchor) !== 'undefined') {\n    left = rightAnchor - cardWidth\n  } else {\n    left = Math.floor((fabricCanvas.width - cardWidth) / 2)\n  }\n\n  return { top, left }\n}\n\nexport function onMove (fabricObject: fabric.Object, callback: Function) {\n  let down = false\n  fabricObject.on('mousedown', () => {\n    down = true\n  })\n  fabricObject.on('mousemove', () => {\n    if (down) {\n      callback()\n    }\n  })\n  fabricObject.on('mouseup', () => {\n    down = false\n  })\n}\n\nexport function onClick (fabricObject: fabric.Object, callback: Function) {\n  let down = false\n  fabricObject.on('mousedown', () => {\n    down = true\n  })\n  fabricObject.on('mousemove', () => {\n    down = false\n  })\n  fabricObject.on('mouseup', () => {\n    if (down) {\n      callback()\n    }\n    down = false\n  })\n}\n\ntype AnchorPoints = {\n  lineAnchor?: {\n    x: number,\n    y: number\n  },\n  arrowPoint: {\n    x: number,\n    y: number\n  }\n}\n\nconst offsetFromCard = 10\n\nexport function getAnchorPoints ({\n  isModule,\n  cardWidth,\n  parentHeight,\n  parentPosition,\n  currentHeight,\n  currentPosition\n}: {\n  isModule: boolean,\n  cardWidth: number,\n  parentHeight: number,\n  parentPosition: { left: number, top: number },\n  currentHeight: number,\n  currentPosition: { left: number, top: number }\n}): AnchorPoints {\n  if (!currentPosition) return\n  \n  const res: AnchorPoints = {\n    arrowPoint: {\n      x: currentPosition.left + cardWidth / 2,\n      // if it's a module use the top of the card: else use the bottom\n      y: isModule ? currentPosition.top - offsetFromCard : currentHeight + currentPosition.top + offsetFromCard\n    }\n  }\n\n  if (!parentPosition) return res\n\n  res.lineAnchor = {\n    x: parentPosition.left + cardWidth / 2,\n    // if it's a module use the bottom of the parent card: else use the top\n    y: isModule ? parentHeight + parentPosition.top + offsetFromCard : parentPosition.top - offsetFromCard\n  }\n\n  return res\n}\n",
     "modules": [],
     "statements": [
       {
@@ -365,43 +365,43 @@
       },
       {
         "pos": 302,
-        "end": 543,
+        "end": 765,
         "name": "getObjectOffset",
         "type": "statement"
       },
       {
-        "pos": 543,
-        "end": 1298,
+        "pos": 765,
+        "end": 1520,
         "name": "calculateTopLeft",
         "type": "statement"
       },
       {
-        "pos": 1298,
-        "end": 1597,
+        "pos": 1520,
+        "end": 1819,
         "name": "onMove",
         "type": "statement"
       },
       {
-        "pos": 1597,
-        "end": 1914,
+        "pos": 1819,
+        "end": 2136,
         "name": "onClick",
         "type": "statement"
       },
       {
-        "pos": 1914,
-        "end": 2039,
+        "pos": 2136,
+        "end": 2261,
         "name": "AnchorPoints",
         "type": "statement"
       },
       {
-        "pos": 2039,
-        "end": 2066,
+        "pos": 2261,
+        "end": 2288,
         "name": "offsetFromCard",
         "type": "declaration"
       },
       {
-        "pos": 2066,
-        "end": 3035,
+        "pos": 2288,
+        "end": 3257,
         "name": "getAnchorPoints",
         "type": "statement"
       }
