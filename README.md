@@ -1,9 +1,11 @@
+![npm (scoped)](https://img.shields.io/npm/v/tater-taste?label=NPM) ![NPM](https://img.shields.io/npm/l/tater-taste?label=License) ![npm](https://img.shields.io/npm/dt/tater-taste?label=Downloads)
+
 # tater-taste
 Tater - TypeScript Abstract Syntax Tree Explorer
 
 Explore your codebase visually, and follow code paths more easily. Don't get lost (hopefully).
 
-![Tater](client/public/tater.svg)
+![](https://github.com/jtmckay/tater-taste/blob/main/client/public/tater.svg)
 
 ## Get Started
 
@@ -11,7 +13,7 @@ Analyze your code base using `npx tater-taste@latest`
 
 This will host a website locally at localhost:4444 where you can browse your codebase.
 
-![Tater](client/public/Capture.JPG)
+![](https://github.com/jtmckay/tater-taste/blob/main/client/public/Capture.JPG)
 
 ### Options
 Specify the entry file if it is not in the current working directory and named index.ts by passing the path as an argument.
