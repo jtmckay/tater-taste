@@ -5,7 +5,7 @@ Tater - TypeScript Abstract Syntax Tree Explorer
 
 Explore your codebase visually, and follow code paths more easily. Don't get lost (hopefully).
 
-![](https://jtmckay.github.io/PenguinWars/tater.svg)
+![](https://github.com/jtmckay/tater-taste/blob/HEAD/client/public/tater.svg)
 
 ## Get Started
 
@@ -13,7 +13,7 @@ Analyze your code base using `npx tater-taste@latest`
 
 This will host a website locally at localhost:4444 where you can browse your codebase.
 
-![](https://jtmckay.github.io/PenguinWars/tater_screenshot.jpg)
+![](https://github.com/jtmckay/tater-taste/blob/HEAD/client/public/Capture.JPG)
 
 ### Options
 Specify the entry file if it is not in the current working directory and named index.ts by passing the path as an argument.
