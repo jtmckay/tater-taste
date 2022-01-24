@@ -88,6 +88,24 @@ function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.M
   };
   sourceFiles[file] = parsedFile;
   root.statements.forEach((statement: any, index) => {
+    if(ts.SyntaxKind[statement.kind] === 'ClassDeclaration') {
+      parsedFile.statements?.push({
+        pos: statement.pos,
+        end: statement.end,
+        name: statement.name?.escapedText,
+        type: 'class',
+      });
+    }
+    statement.members?.forEach((member: any) => {
+      if(ts.SyntaxKind[member.kind] === 'MethodDeclaration') {
+        parsedFile.statements?.push({
+          pos: member.pos,
+          end: member.end,
+          name: member.name?.escapedText,
+          type: 'classmethod',
+        });
+      }
+    });
     debugLog(prefix, 'Index', index);
     if (statement.moduleSpecifier?.text) {
       debugLog(prefix, 'statement moduleSpecifier text:', statement.moduleSpecifier.text);
