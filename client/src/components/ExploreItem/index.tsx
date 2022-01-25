@@ -75,50 +75,114 @@ export default function ExploreItem({
       // Margin below header
       lineOffset += 20
 
-      const references = searchSourceFileModules(sourceFileKeyMap, sourceFileName)
+      const references = searchSourceFileModules(sourceFileKeyMap, sourceFileName).map(i => i.fileName)
+      const filteredReferences = references.filter(i => i !== referringModule)
+      if (filteredReferences.length) {
+        addLine('References:', { fontSize: 18, fill: 'blue', hoverCursor: 'pointer' }, () => {
+          if (expandedReferences.length === filteredReferences.length) {
+            setExpandedReferences([])
+          } else {
+            const newExpandedReferences = [...expandedReferences]
+            references.forEach(reference => {
+              if (!expandedReferences.includes(reference)) {
+                newExpandedReferences.push(reference)
+              }
+            })
+            setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))
+          }
+        })
 
-      addLine('References:', { fontSize: 18 }, () => {
-        if (expandedReferences.length === references.filter(i => i !== referringModule).length) {
-          setExpandedReferences([])
-        } else {
-          const newExpandedReferences = [...expandedReferences]
-          references.forEach(reference => {
-            if (!expandedReferences.includes(reference)) {
-              newExpandedReferences.push(reference)
+        filteredReferences.forEach((reference, index) => {
+          addLine(`  ${getShortenedFileName(reference)}`, {
+            fontSize: 16,
+            hoverCursor: 'pointer',
+            backgroundColor: index % 2 === 0 ? '#eee' : undefined
+          }, () => {
+            toggleReference(reference)
+          })
+        })
+      }
+
+      const classes = sourceFile.statements.filter(i => i.type === 'class')
+      if (classes.length) {
+        addLine('Classes:', { fontSize: 18 })
+
+        classes.forEach((classStatement, index) => {
+          addLine(`  ${classStatement.name || 'UNKNOWN'}`, {
+            fontSize: 16,
+            backgroundColor: index % 2 === 0 ? '#eee' : undefined
+          })
+          classStatement.statements.forEach(subStatement => {
+            addLine(`    ${subStatement.name || 'UNKNOWN'}()`, { fontSize: 16, backgroundColor: index % 2 === 0 ? '#eee' : undefined })
+          })
+        })
+      } else {
+        const declarations = sourceFile.statements.filter(i => i.type === 'function' || i.type === 'method')
+        if (declarations.length) {
+          addLine('Declarations:', { fontSize: 18 })
+  
+          declarations.forEach((statement, index) => {
+            if (/^[A-Z]/.test(statement.name)) {
+              addLine(`    <${statement.name || 'UNKNOWN'}>`, { fontSize: 16, backgroundColor: index % 2 === 0 ? '#eee' : undefined })
+            } else {
+              addLine(`    ${statement.name || 'UNKNOWN'}()`, { fontSize: 16, backgroundColor: index % 2 === 0 ? '#eee' : undefined })
             }
           })
-          setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))
         }
-      })
+      }
 
-      references.filter(i => i !== referringModule).forEach((reference, index) => {
-        addLine(`  ${getShortenedFileName(reference)}`, { fontSize: 16, backgroundColor: index % 2 === 0 ? '#eee' : undefined }, () => {
-          toggleReference(reference)
-        })
-      })
+      const expressions = sourceFile.statements.filter(i => i.type === 'expression')
+      if (expressions.length) {
+        addLine('Expressions:', { fontSize: 18 })
 
-      addLine('Modules:', { fontSize: 18 }, () => {
-        if (expandedModules.length === sourceFile.modules.filter(i => i !== referringModule).length) {
-          setExpandedModules([])
-        } else {
-          const newExpandedModules = [...expandedModules]
-          sourceFile.modules.forEach(module => {
-            if (!expandedModules.includes(module)) {
-              newExpandedModules.push(module)
-            }
+        expressions.forEach((statement, index) => {
+          addLine(`  ${statement.name || 'UNKNOWN'}()`, {
+            fontSize: 16,
+            backgroundColor: index % 2 === 0 ? '#eee' : undefined
           })
-          setExpandedModules(newExpandedModules.filter(i => i !== referringModule))
-        }
-      })
-
-      sourceFile.modules.filter(i => i !== referringModule).forEach((module, index) => {
-        addLine(`  ${getShortenedFileName(module)}`, {
-          fontSize: 16,
-          backgroundColor: index % 2 === 0 ? '#eee' : undefined
-        }, () => {
-          toggleModule(module)
         })
-      })
+      }
+
+      const externalModules = sourceFile.statements.filter(i => i.type === 'module')
+      if (externalModules.length) {
+        addLine('External Modules:', { fontSize: 18 })
+
+        externalModules.forEach((statement, index) => {
+          addLine(`  ${statement.name || 'UNKNOWN'}`, {
+            fontSize: 16,
+            backgroundColor: index % 2 === 0 ? '#eee' : undefined
+          })
+        })
+      }
+
+      const modules = sourceFile.modules.filter(i => i !== referringModule)
+      if (modules.length) {
+        addLine('Modules:', { fontSize: 18, fill: 'blue', hoverCursor: 'pointer' }, () => {
+          if (expandedModules.length === modules.length) {
+            setExpandedModules([])
+          } else {
+            const newExpandedModules = [...expandedModules]
+            sourceFile.modules.forEach(module => {
+              if (!expandedModules.includes(module)) {
+                newExpandedModules.push(module)
+              }
+            })
+            setExpandedModules(newExpandedModules.filter(i => i !== referringModule))
+          }
+        })
+
+        modules.forEach((module, index) => {
+          addLine(`  ${getShortenedFileName(module)}`, {
+            fontSize: 16,
+            hoverCursor: 'pointer',
+            backgroundColor: index % 2 === 0 ? '#eee' : undefined
+          }, () => {
+            toggleModule(module)
+          })
+        })
+      } else {
+        addLine('No Modules', { fontSize: 18 })
+      }
 
       // Bottom margin for card
       lineOffset += 20
