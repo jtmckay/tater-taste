@@ -10,9 +10,16 @@ const tsConfigCompilerOptions = {
 
 function getEntryFilePath(entryPoint: string): string {
   let entryFilePath = join(process.cwd(), entryPoint || '')
-  fileVariations(entryFilePath).concat(entryPoint? fileVariations(entryPoint || '') : []).some((i) => {
+  fileVariations(entryFilePath).concat(entryPoint ? fileVariations(entryPoint) : []).sort((a, b) => {
+    if (a.length > b.length) {
+      return -1
+    } else {
+      return 1
+    }
+  }).some((i) => {
     if (existsSync(i)) {
       entryFilePath = i
+      console.log('entry', entryFilePath)
       return true
     }
   })
