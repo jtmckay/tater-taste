@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { css } from '@emotion/css'
 import TextField from '@mui/material/TextField';
 import { FileGraph, SourceFileKeyMap } from '../../../../ast/generateAST'
@@ -6,6 +6,7 @@ import ExploreItem from '../ExploreItem'
 import { getShortenedFileName, searchSourceFileText } from '../../utils/sourceFileHelpers'
 import FabricCanvas from '../FabricCanvas'
 import SearchResult from '../SearchResult';
+import { useEffect } from 'react';
 
 let searchTimerThrottleId
 
@@ -14,7 +15,21 @@ export default function Explorer ({ fileGraph, sourceFileKeyMap }: { fileGraph: 
   const [fabricCanvas, setFabricCanvas] = useState()
   const [pointerState, setPointerState] = useState()
   const [searchText, setSearchText] = useState('')
-  const [searchResults, setSearchResults] = useState<string[]>([])
+  const [searchResults, setSearchResults] = useState<{ fileName: string, isDeclaration?: boolean }[]>([])
+  const timerRef = useRef()
+
+  function search () {
+    setSearchResults(searchSourceFileText(sourceFileKeyMap, searchText))
+  }
+
+  useEffect(() => {
+    clearTimeout(searchTimerThrottleId)
+    searchTimerThrottleId = setTimeout(search, 500)
+
+    return () => {
+      clearTimeout(searchTimerThrottleId)
+    }
+  }, [searchText])
 
   return (
     <div className={css`
@@ -30,18 +45,19 @@ export default function Explorer ({ fileGraph, sourceFileKeyMap }: { fileGraph: 
         padding-bottom: 2px;
       `}>
         <div className={css`font-size: 32px; margin: 0px 20px; align-self: center;`}>Tater - TypeScript Abstract Syntax Tree Explorer</div>
-        <TextField className={css`flex-grow: 1; margin-bottom: -6px;`} id="outlined-basic" label="Search" variant="outlined" value={searchText} onChange={event => setSearchText(event.target.value)} onKeyPress={key => {
-          function search () {
-            setSearchResults(searchSourceFileText(sourceFileKeyMap, searchText))
-          }
-          if (key.key === 'Enter' && searchText.length) {
-            clearTimeout(searchTimerThrottleId)
-            search()
-          } else {
-            clearTimeout(searchTimerThrottleId)
-            searchTimerThrottleId = setTimeout(search, 500)
-          }
-        }} />
+        <TextField
+          className={css`flex-grow: 1; margin-bottom: -6px;`}
+          id="outlined-basic"
+          label="Search"
+          variant="outlined"
+          value={searchText}
+          onChange={event => setSearchText(event.target.value)}
+          onKeyPress={key => {
+            if (key.key === 'Enter' && searchText.length) {
+              clearTimeout(searchTimerThrottleId)
+              search()
+            }
+          }} />
       </div>
       <FabricCanvas registerFabricCanvas={fabricCanvas => setFabricCanvas(fabricCanvas)}
         registerPointerState={pointerState => setPointerState(pointerState)} />
@@ -58,7 +74,10 @@ export default function Explorer ({ fileGraph, sourceFileKeyMap }: { fileGraph: 
       `}>
         {searchResults.map(searchResult => {
           return (
-            <SearchResult key={searchResult} sourceFileName={getShortenedFileName(searchResult)} callback={() => setSourceFileName(searchResult)} />
+            <SearchResult key={searchResult.fileName}
+              isDeclaration={searchResult.isDeclaration}
+              sourceFileName={getShortenedFileName(searchResult.fileName)}
+              callback={() => setSourceFileName(searchResult.fileName)} />
           )
         })}
       </div>}

@@ -1,5 +1,5 @@
 {
-  "/home/taylor/GitHub/tater-taste/client/src/App": {
+  "/home/taylor/GitHub/tater-taste/client/src/App.tsx": {
     "fileName": "/home/taylor/GitHub/tater-taste/client/src/App.tsx",
     "text": "import React from 'react'\nimport ReactDOM from 'react-dom'\nimport Home from './views/Home'\n\nReactDOM.render(\n  <Home />,\n  document.getElementById('app')\n)\n",
     "modules": [
@@ -19,10 +19,10 @@
         "type": "module"
       },
       {
-        "pos": 58,
-        "end": 90,
-        "name": "./views/Home",
-        "type": "module"
+        "pos": 90,
+        "end": 155,
+        "name": "render",
+        "type": "expression"
       }
     ]
   },
@@ -46,12 +46,6 @@
         "type": "module"
       },
       {
-        "pos": 60,
-        "end": 109,
-        "name": "../../components/Explorer",
-        "type": "module"
-      },
-      {
         "pos": 109,
         "end": 154,
         "name": "../../fileGraph.json",
@@ -67,13 +61,13 @@
         "pos": 203,
         "end": 466,
         "name": "Home",
-        "type": "statement"
+        "type": "function"
       }
     ]
   },
   "/home/taylor/GitHub/tater-taste/client/src/components/Explorer": {
     "fileName": "/home/taylor/GitHub/tater-taste/client/src/components/Explorer/index.tsx",
-    "text": "import React, { useState } from 'react'\nimport { css } from '@emotion/css'\nimport TextField from '@mui/material/TextField';\nimport { FileGraph, SourceFileKeyMap } from '../../../../ast/generateAST'\nimport ExploreItem from '../ExploreItem'\nimport { getShortenedFileName, searchSourceFileText } from '../../utils/sourceFileHelpers'\nimport FabricCanvas from '../FabricCanvas'\nimport SearchResult from '../SearchResult';\n\nlet searchTimerThrottleId\n\nexport default function Explorer ({ fileGraph, sourceFileKeyMap }: { fileGraph: FileGraph, sourceFileKeyMap: SourceFileKeyMap}) {\n  const [sourceFileName, setSourceFileName] = useState(fileGraph.fileName)\n  const [fabricCanvas, setFabricCanvas] = useState()\n  const [pointerState, setPointerState] = useState()\n  const [searchText, setSearchText] = useState('')\n  const [searchResults, setSearchResults] = useState<string[]>([])\n\n  return (\n    <div className={css`\n      display: flex;\n      position: relative;\n      flex-direction: column;\n      flex-grow: 1;\n    `}>\n      <div className={css`\n        display: flex;\n        box-shadow: 0px -3px 5px 5px;\n        padding-top: 6px;\n        padding-bottom: 2px;\n      `}>\n        <div className={css`font-size: 32px; margin: 0px 20px; align-self: center;`}>Tater - TypeScript Abstract Syntax Tree Explorer</div>\n        <TextField className={css`flex-grow: 1; margin-bottom: -6px;`} id=\"outlined-basic\" label=\"Search\" variant=\"outlined\" value={searchText} onChange={event => setSearchText(event.target.value)} onKeyPress={key => {\n          function search () {\n            setSearchResults(searchSourceFileText(sourceFileKeyMap, searchText))\n          }\n          if (key.key === 'Enter' && searchText.length) {\n            clearTimeout(searchTimerThrottleId)\n            search()\n          } else {\n            clearTimeout(searchTimerThrottleId)\n            searchTimerThrottleId = setTimeout(search, 500)\n          }\n        }} />\n      </div>\n      <FabricCanvas registerFabricCanvas={fabricCanvas => setFabricCanvas(fabricCanvas)}\n        registerPointerState={pointerState => setPointerState(pointerState)} />\n      <ExploreItem\n        sourceFileKeyMap={sourceFileKeyMap}\n        fabricCanvas={fabricCanvas}\n        pointerState={pointerState}\n        sourceFileName={sourceFileName} />\n      {searchText && <div className={css`\n        position: absolute;\n        top: 64px;\n        right: 0px;\n        background: #d3d3d3d3;\n      `}>\n        {searchResults.map(searchResult => {\n          return (\n            <SearchResult key={searchResult} sourceFileName={getShortenedFileName(searchResult)} callback={() => setSourceFileName(searchResult)} />\n          )\n        })}\n      </div>}\n      {searchText && <div className={css`\n        position: absolute;\n        top: 2px;\n        right: 0px;\n        color: red;\n        cursor: pointer;\n        font-size: 32px;\n        padding: 10px;\n      `} onClick={() => setSearchText('')}>\n        x\n      </div>}\n    </div>\n  )\n}\n",
+    "text": "import React, { useRef, useState } from 'react'\nimport { css } from '@emotion/css'\nimport TextField from '@mui/material/TextField';\nimport { FileGraph, SourceFileKeyMap } from '../../../../ast/generateAST'\nimport ExploreItem from '../ExploreItem'\nimport { getShortenedFileName, searchSourceFileText } from '../../utils/sourceFileHelpers'\nimport FabricCanvas from '../FabricCanvas'\nimport SearchResult from '../SearchResult';\nimport { useEffect } from 'react';\n\nlet searchTimerThrottleId\n\nexport default function Explorer ({ fileGraph, sourceFileKeyMap }: { fileGraph: FileGraph, sourceFileKeyMap: SourceFileKeyMap}) {\n  const [sourceFileName, setSourceFileName] = useState(fileGraph.fileName)\n  const [fabricCanvas, setFabricCanvas] = useState()\n  const [pointerState, setPointerState] = useState()\n  const [searchText, setSearchText] = useState('')\n  const [searchResults, setSearchResults] = useState<{ fileName: string, isDeclaration?: boolean }[]>([])\n  const timerRef = useRef()\n\n  function search () {\n    setSearchResults(searchSourceFileText(sourceFileKeyMap, searchText))\n  }\n\n  useEffect(() => {\n    clearTimeout(searchTimerThrottleId)\n    searchTimerThrottleId = setTimeout(search, 500)\n\n    return () => {\n      clearTimeout(searchTimerThrottleId)\n    }\n  }, [searchText])\n\n  return (\n    <div className={css`\n      display: flex;\n      position: relative;\n      flex-direction: column;\n      flex-grow: 1;\n    `}>\n      <div className={css`\n        display: flex;\n        box-shadow: 0px -3px 5px 5px;\n        padding-top: 6px;\n        padding-bottom: 2px;\n      `}>\n        <div className={css`font-size: 32px; margin: 0px 20px; align-self: center;`}>Tater - TypeScript Abstract Syntax Tree Explorer</div>\n        <TextField\n          className={css`flex-grow: 1; margin-bottom: -6px;`}\n          id=\"outlined-basic\"\n          label=\"Search\"\n          variant=\"outlined\"\n          value={searchText}\n          onChange={event => setSearchText(event.target.value)}\n          onKeyPress={key => {\n            if (key.key === 'Enter' && searchText.length) {\n              clearTimeout(searchTimerThrottleId)\n              search()\n            }\n          }} />\n      </div>\n      <FabricCanvas registerFabricCanvas={fabricCanvas => setFabricCanvas(fabricCanvas)}\n        registerPointerState={pointerState => setPointerState(pointerState)} />\n      <ExploreItem\n        sourceFileKeyMap={sourceFileKeyMap}\n        fabricCanvas={fabricCanvas}\n        pointerState={pointerState}\n        sourceFileName={sourceFileName} />\n      {searchText && <div className={css`\n        position: absolute;\n        top: 64px;\n        right: 0px;\n        background: #d3d3d3d3;\n      `}>\n        {searchResults.map(searchResult => {\n          return (\n            <SearchResult key={searchResult.fileName}\n              isDeclaration={searchResult.isDeclaration}\n              sourceFileName={getShortenedFileName(searchResult.fileName)}\n              callback={() => setSourceFileName(searchResult.fileName)} />\n          )\n        })}\n      </div>}\n      {searchText && <div className={css`\n        position: absolute;\n        top: 2px;\n        right: 0px;\n        color: red;\n        cursor: pointer;\n        font-size: 32px;\n        padding: 10px;\n      `} onClick={() => setSearchText('')}>\n        x\n      </div>}\n    </div>\n  )\n}\n",
     "modules": [
       "/home/taylor/GitHub/tater-taste/ast/generateAST.ts",
       "/home/taylor/GitHub/tater-taste/client/src/components/ExploreItem/index.tsx",
@@ -84,69 +78,39 @@
     "statements": [
       {
         "pos": 0,
-        "end": 39,
+        "end": 47,
         "name": "react",
         "type": "module"
       },
       {
-        "pos": 39,
-        "end": 74,
+        "pos": 47,
+        "end": 82,
         "name": "@emotion/css",
         "type": "module"
       },
       {
-        "pos": 74,
-        "end": 123,
+        "pos": 82,
+        "end": 131,
         "name": "@mui/material/TextField",
         "type": "module"
       },
       {
-        "pos": 123,
-        "end": 197,
-        "name": "../../../../ast/generateAST",
+        "pos": 424,
+        "end": 459,
+        "name": "react",
         "type": "module"
       },
       {
-        "pos": 197,
-        "end": 238,
-        "name": "../ExploreItem",
-        "type": "module"
-      },
-      {
-        "pos": 238,
-        "end": 329,
-        "name": "../../utils/sourceFileHelpers",
-        "type": "module"
-      },
-      {
-        "pos": 329,
-        "end": 372,
-        "name": "../FabricCanvas",
-        "type": "module"
-      },
-      {
-        "pos": 372,
-        "end": 416,
-        "name": "../SearchResult",
-        "type": "module"
-      },
-      {
-        "pos": 416,
-        "end": 443,
-        "name": "searchTimerThrottleId",
-        "type": "declaration"
-      },
-      {
-        "pos": 443,
-        "end": 2978,
+        "pos": 486,
+        "end": 3330,
         "name": "Explorer",
-        "type": "statement"
+        "type": "function"
       }
     ]
   },
   "/home/taylor/GitHub/tater-taste/ast/generateAST": {
     "fileName": "/home/taylor/GitHub/tater-taste/ast/generateAST.ts",
-    "text": "import { existsSync } from 'fs';\nimport { join } from 'path';\nimport ts = require('typescript');\n\nconst logging = false;\n\nconst tsConfigCompilerOptions = {\n  moduleResolution: 2,\n  noImplicitAny: false,\n  target: 2,\n};\n\nexport function generateAST(entryPoint?: string, tsConfigPath?: string): { sourceFiles: SourceFileKeyMap, fileGraph: FileGraph } {\n  const entryFilePath = join(process.cwd(), entryPoint || '')\n  const program = ts.createProgram(fileVariations(entryFilePath).concat(entryPoint? fileVariations(entryPoint) : []).filter((i) => existsSync(i)), grabConfig(tsConfigPath));\n  const programFileMap: ts.Map<ts.SourceFile> = (program as any).getFilesByNameMap();\n  const sourceFiles: SourceFileKeyMap = {};\n\n  // console.log('program', program.getRootFileNames())\n\n  const fileGraph = traverseFile(sourceFiles, entryFilePath, programFileMap);\n  return { sourceFiles, fileGraph };\n}\n\nfunction grabConfig(tsConfigPath?: string) {\n  if (tsConfigPath) {\n    const tsConfigFilePath = join(process.cwd(), tsConfigPath)\n    try {\n      const tsConfig = require(tsConfigFilePath)\n      if (tsConfig.compilerOptions) {\n        return tsConfig.compilerOptions\n      }\n    } catch (err) {\n      console.log('Could not load tsconfig at', tsConfigFilePath, '\\nPlease ensure there are no comments in the tsconfig supplied\\n\\n')\n      throw err\n    }\n  }\n  return tsConfigCompilerOptions\n}\n\nfunction debugLog(...params: any) {\n  if (logging) {\n    debugLog(...params);\n  }\n}\n\nexport type SourceFileKeyMap = { [key: string]: SourceFile }\n\nexport type SourceFile = {\n  fileName: string,\n  text: string,\n  modules: string[]\n  statements?: Statement[]\n}\n\nexport type FileGraph = {\n  fileName: string,\n  modules: string[]\n}\n\nexport type Statement = {\n  pos: number,\n  end: number,\n  name: string,\n  type: string,\n}\n\nfunction traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.Map<ts.SourceFile>, parentSourceFile?: any, importStatement?: string, prefix: string = ''): FileGraph {\n  const root = findFile(file, fileMap, importStatement);\n\n  if (!root && parentSourceFile && parentSourceFile.resolvedModules.get(importStatement)) {\n    const subProgram = ts.createProgram(fileVariations(file).filter((i) => existsSync(i)), tsConfigCompilerOptions);\n    const subFileMap: ts.Map<ts.SourceFile> = (subProgram as any).getFilesByNameMap();\n    return traverseFile(sourceFiles, file, subFileMap);\n  }\n\n  if (!root) {\n    throw new Error(`Could not find file ${file}`);\n  }\n  if (sourceFiles[file]) {\n    return sourceFiles[file];\n  }\n  const parsedFile: SourceFile = {\n    fileName: root.fileName,\n    text: root.text,\n    modules: [],\n    statements: [],\n  };\n  sourceFiles[file] = parsedFile;\n  root.statements.forEach((statement: any, index) => {\n    debugLog(prefix, 'Index', index);\n    if (statement.moduleSpecifier?.text) {\n      debugLog(prefix, 'statement moduleSpecifier text:', statement.moduleSpecifier.text);\n      try {\n        parsedFile.statements?.push({\n          pos: statement.pos,\n          end: statement.end,\n          name: statement.moduleSpecifier.text,\n          type: 'module',\n        });\n        const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);\n        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleSpecifier.text, `${prefix}\\t`).fileName);\n      } catch (err) {\n        console.info(prefix, `Skipped ${statement.moduleSpecifier.text} in ${file}`);\n      }\n    } else if (statement.name?.escapedText) {\n      debugLog(prefix, 'statement name:', statement.name?.escapedText);\n      parsedFile?.statements?.push({\n        pos: statement.pos,\n        end: statement.end,\n        name: statement.name?.escapedText,\n        type: 'statement',\n      });\n    } else if (statement.declarationList?.declarations) {\n      statement.declarationList.declarations.forEach((declaration: ts.Declaration & { name: { escapedText: string }}) => {\n        debugLog(prefix, 'declaration name:', declaration.name?.escapedText);\n        parsedFile?.statements?.push({\n          pos: statement.pos,\n          end: statement.end,\n          name: declaration.name?.escapedText,\n          type: 'declaration',\n        });\n      });\n    } else {\n      debugLog(prefix, 'Missed something', statement);\n    }\n  });\n  return { fileName: parsedFile.fileName, modules: parsedFile.modules };\n}\n\nfunction fileVariations(file: string): string[] {\n  return [\n    file,\n    `${file}.ts`,\n    `${file}.tsx`,\n    file.toLowerCase(),\n    `${file}.ts`.toLowerCase(),\n    `${file}.tsx`.toLowerCase(),\n    join(file, 'index.ts'),\n    join(file, 'index.tsx'),\n    join(file, 'index.ts').toLowerCase(),\n    join(file, 'index.tsx').toLowerCase(),\n  ];\n}\n\nfunction findFile(file: string, fileMap: ts.Map<ts.SourceFile>, importStatement?: string): ts.SourceFile | undefined {\n  let foundFile;\n  if (importStatement) {\n    fileVariations(importStatement).some((filePath) => {\n      foundFile = fileMap.get(filePath);\n      return !!foundFile;\n    });\n  }\n  if (!foundFile) {\n    fileVariations(file).some((filePath) => {\n      foundFile = fileMap.get(filePath);\n      return !!foundFile;\n    });\n  }\n  return foundFile;\n}\n",
+    "text": "import { existsSync } from 'fs';\nimport { join } from 'path';\nimport ts = require('typescript');\n\nconst tsConfigCompilerOptions = {\n  moduleResolution: 2,\n  noImplicitAny: false,\n  target: 2,\n};\n\nfunction getEntryFilePath(entryPoint: string): string {\n  let entryFilePath = join(process.cwd(), entryPoint || '')\n  fileVariations(entryFilePath).concat(entryPoint? fileVariations(entryPoint || '') : []).some((i) => {\n    if (existsSync(i)) {\n      entryFilePath = i\n      return true\n    }\n  })\n  return entryFilePath\n}\n\nexport function generateAST(entryPoint?: string, tsConfigPath?: string): { sourceFiles: SourceFileKeyMap, fileGraph: FileGraph } {\n  let entryFilePath = getEntryFilePath(entryPoint || '')\n\n  const program = ts.createProgram([entryFilePath], grabConfig(tsConfigPath));\n  const programFileMap: ts.Map<ts.SourceFile> = (program as any).getFilesByNameMap();\n  const sourceFiles: SourceFileKeyMap = {};\n\n  const fileGraph = traverseFile(sourceFiles, entryFilePath, programFileMap);\n  return { sourceFiles, fileGraph };\n}\n\nfunction grabConfig(tsConfigPath?: string) {\n  if (tsConfigPath) {\n    const tsConfigFilePath = join(process.cwd(), tsConfigPath)\n    try {\n      const tsConfig = require(tsConfigFilePath)\n      if (tsConfig.compilerOptions) {\n        return tsConfig.compilerOptions\n      }\n    } catch (err) {\n      console.log('Could not load tsconfig at', tsConfigFilePath, '\\nPlease ensure there are no comments in the tsconfig supplied\\n\\n')\n      throw err\n    }\n  }\n  return tsConfigCompilerOptions\n}\n\nexport type SourceFileKeyMap = { [key: string]: SourceFile }\n\nexport type SourceFile = {\n  fileName: string,\n  text: string,\n  modules: string[]\n  statements?: Statement[]\n}\n\nexport type FileGraph = {\n  fileName: string,\n  modules: string[]\n}\n\nexport type Statement = {\n  pos: number,\n  end: number,\n  name?: string,\n  type: string,\n  statements?: Statement[]\n}\n\nfunction traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.Map<ts.SourceFile>, parentSourceFile?: any, importStatement?: string, prefix: string = ''): FileGraph {\n  const root = findFile(file, fileMap, importStatement);\n\n  if (!root && parentSourceFile && parentSourceFile.resolvedModules.get(importStatement)) {\n    const subProgram = ts.createProgram(fileVariations(file).filter((i) => existsSync(i)), tsConfigCompilerOptions);\n    const subFileMap: ts.Map<ts.SourceFile> = (subProgram as any).getFilesByNameMap();\n    return traverseFile(sourceFiles, file, subFileMap);\n  }\n\n  if (!root) {\n    throw new Error(`Could not find file ${file}`);\n  }\n  if (sourceFiles[file]) {\n    return sourceFiles[file];\n  }\n  const parsedFile: SourceFile = {\n    fileName: root.fileName,\n    text: root.text,\n    modules: [],\n    statements: [],\n  };\n  sourceFiles[file] = parsedFile;\n  if (!root.statements) {\n    throw new Error(`No root statements in file ${file}`);\n  }\n  root.statements.forEach((statement: any, index) => {\n    if (statement.kind === ts.SyntaxKind.ImportDeclaration) {\n      try {\n        const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);\n        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleSpecifier.text, `${prefix}\\t`).fileName);\n      } catch (err) {\n        parsedFile.statements?.push({\n          pos: statement.pos,\n          end: statement.end,\n          name: statement.moduleSpecifier.text,\n          type: 'module',\n        });\n        console.info(prefix, `External module: ${statement.moduleSpecifier.text} in ${file}`);\n      }\n    } else if (statement.kind === ts.SyntaxKind.ImportEqualsDeclaration) {\n      try {\n        const modulePath = join(root.fileName, '../', statement.moduleReference.expression.text);\n        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleReference.expression.text, `${prefix}\\t`).fileName);\n      } catch (err) {\n        parsedFile.statements?.push({\n          pos: statement.pos,\n          end: statement.end,\n          name: statement.moduleReference.expression.text,\n          type: 'module',\n        });\n        console.info(prefix, `External module: ${statement.moduleReference.expression.text} in ${file}`);\n      }\n    } else if (statement.kind === ts.SyntaxKind.ClassDeclaration) {\n      parsedFile.statements?.push({\n        pos: statement.pos,\n        end: statement.end,\n        name: statement.name?.escapedText,\n        type: 'class',\n        statements: statement.members?.map((nestedStatement: any) => {\n          if (nestedStatement.kind === ts.SyntaxKind.FunctionDeclaration) {\n            return {\n              pos: nestedStatement.pos,\n              end: nestedStatement.end,\n              name: nestedStatement.name.escapedText,\n              type: 'function',\n            };\n          } else if (nestedStatement.kind === ts.SyntaxKind.MethodDeclaration) {\n            return {\n              pos: nestedStatement.pos,\n              end: nestedStatement.end,\n              name: nestedStatement.name.escapedText,\n              type: 'method',\n            };\n          }\n        })\n      });\n    } else if (statement.kind === ts.SyntaxKind.FunctionDeclaration) {\n      parsedFile.statements?.push({\n        pos: statement.pos,\n        end: statement.end,\n        name: statement.name.escapedText,\n        type: 'function',\n      });\n    } else if (statement.kind === ts.SyntaxKind.MethodDeclaration) {\n      parsedFile.statements?.push({\n        pos: statement.pos,\n        end: statement.end,\n        name: statement.name.escapedText,\n        type: 'method',\n      });\n    } else if (statement.kind === ts.SyntaxKind.ExpressionStatement) {\n      parsedFile.statements?.push({\n        pos: statement.pos,\n        end: statement.end,\n        name: statement.expression.name?.escapedText || statement.expression.expression?.name.escapedText || statement.expression.expression?.expression?.name.escapedText,\n        type: 'expression',\n      });\n    } else {\n      // console.debug(prefix, 'Missed something', ts.SyntaxKind[statement.kind]);\n    }\n  });\n  return { fileName: parsedFile.fileName, modules: parsedFile.modules };\n}\n\nfunction fileVariations(file: string): string[] {\n  return [\n    file,\n    `${file}.ts`,\n    `${file}.tsx`,\n    file.toLowerCase(),\n    `${file}.ts`.toLowerCase(),\n    `${file}.tsx`.toLowerCase(),\n    join(file, 'index.ts'),\n    join(file, 'index.tsx'),\n    join(file, 'index.ts').toLowerCase(),\n    join(file, 'index.tsx').toLowerCase(),\n  ];\n}\n\nfunction findFile(file: string, fileMap: ts.Map<ts.SourceFile>, importStatement?: string): ts.SourceFile | undefined {\n  let foundFile;\n  if (importStatement) {\n    fileVariations(importStatement).some((filePath) => {\n      foundFile = fileMap.get(filePath);\n      return !!foundFile;\n    });\n  }\n  if (!foundFile) {\n    fileVariations(file).some((filePath) => {\n      foundFile = fileMap.get(filePath);\n      return !!foundFile;\n    });\n  }\n  return foundFile;\n}\n",
     "modules": [],
     "statements": [
       {
@@ -164,86 +128,50 @@
       {
         "pos": 61,
         "end": 96,
-        "name": "ts",
-        "type": "statement"
+        "name": "typescript",
+        "type": "module"
       },
       {
-        "pos": 96,
-        "end": 120,
-        "name": "logging",
-        "type": "declaration"
+        "pos": 194,
+        "end": 518,
+        "name": "getEntryFilePath",
+        "type": "function"
       },
       {
-        "pos": 120,
-        "end": 218,
-        "name": "tsConfigCompilerOptions",
-        "type": "declaration"
-      },
-      {
-        "pos": 218,
-        "end": 891,
+        "pos": 518,
+        "end": 1035,
         "name": "generateAST",
-        "type": "statement"
+        "type": "function"
       },
       {
-        "pos": 891,
-        "end": 1384,
+        "pos": 1035,
+        "end": 1528,
         "name": "grabConfig",
-        "type": "statement"
+        "type": "function"
       },
       {
-        "pos": 1384,
-        "end": 1469,
-        "name": "debugLog",
-        "type": "statement"
-      },
-      {
-        "pos": 1469,
-        "end": 1531,
-        "name": "SourceFileKeyMap",
-        "type": "statement"
-      },
-      {
-        "pos": 1531,
-        "end": 1644,
-        "name": "SourceFile",
-        "type": "statement"
-      },
-      {
-        "pos": 1644,
-        "end": 1713,
-        "name": "FileGraph",
-        "type": "statement"
-      },
-      {
-        "pos": 1713,
-        "end": 1804,
-        "name": "Statement",
-        "type": "statement"
-      },
-      {
-        "pos": 1804,
-        "end": 4369,
+        "pos": 1891,
+        "end": 6133,
         "name": "traverseFile",
-        "type": "statement"
+        "type": "function"
       },
       {
-        "pos": 4369,
-        "end": 4716,
+        "pos": 6133,
+        "end": 6480,
         "name": "fileVariations",
-        "type": "statement"
+        "type": "function"
       },
       {
-        "pos": 4716,
-        "end": 5181,
+        "pos": 6480,
+        "end": 6945,
         "name": "findFile",
-        "type": "statement"
+        "type": "function"
       }
     ]
   },
   "/home/taylor/GitHub/tater-taste/client/src/components/ExploreItem": {
     "fileName": "/home/taylor/GitHub/tater-taste/client/src/components/ExploreItem/index.tsx",
-    "text": "import React, { useEffect, useRef, useState } from 'react';\nimport { fabric } from 'fabric';\nimport { SourceFileKeyMap } from '../../../../ast/generateAST'\nimport { getFileNameWithoutExtension, getShortenedFileName, searchSourceFileModules } from '../../utils/sourceFileHelpers'\nimport { calculateTopLeft, getAnchorPoints, onClick, onMove } from '../../utils/fabricHelpers';\nimport Arrow from '../Arrow';\n\nconst cardWidth = 500\nconst cardSpacing = 80\n\nexport default function ExploreItem({\n  fabricCanvas,\n  pointerState,\n  isReference,\n  isModule,\n  referringModule,\n  parentHeight,\n  parentPosition,\n  topAnchor,\n  bottomAnchor,\n  leftAnchor,\n  rightAnchor,\n  sourceFileName,\n  sourceFileKeyMap\n}:\n  {\n    fabricCanvas: fabric.Canvas,\n    pointerState,\n    isReference?: boolean,\n    isModule?: boolean,\n    referringModule?: string,\n    parentHeight?: number,\n    parentPosition?: { left: number, top: number},\n    topAnchor?: number,\n    bottomAnchor?: number,\n    leftAnchor?: number,\n    rightAnchor?: number,\n    sourceFileName: string,\n    sourceFileKeyMap: SourceFileKeyMap\n  }) {\n  const groupRef = useRef<fabric.Group>()\n  const positionRef = useRef<{ left: number, top: number }>()\n  const [ expandedReferences, setExpandedReferences ] = useState([])\n  const [ expandedModules, setExpandedModules ] = useState<string[]>([])\n  const [ cardHeight, setCardHeight ] = useState(400)\n  const [ arrow, setArrow ] = useState<{ lineAnchor?: { x: number; y: number; }; arrowPoint: { x: number; y: number; } }>()\n\n  useEffect(() => {\n    if (fabricCanvas && pointerState) {\n      const sourceFile = sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, sourceFileName)]\n      let lineOffset = 20\n      let margin = 20\n      let lineSpacing = 10\n\n      const groupArray = []\n\n      function addLine (text: string, options: fabric.ITextboxOptions, handler?: any) {\n        const textBox = new fabric.Textbox(text, {\n          left: margin,\n          top: lineOffset,\n          width: cardWidth - margin * 2,\n          ...options\n        })\n        if (handler) {\n          onClick(textBox, handler)\n        }\n        groupArray.push(textBox)\n        lineOffset += (options.fontSize || 40) + lineSpacing\n      }\n\n      addLine(getShortenedFileName(sourceFileName), { fontSize: 24, fontWeight: 'bold' }, () => {\n        console.log('clicked title: modal with code?')\n      })\n\n      // Margin below header\n      lineOffset += 20\n\n      const references = searchSourceFileModules(sourceFileKeyMap, sourceFileName)\n\n      addLine('References:', { fontSize: 18 }, () => {\n        if (expandedReferences.length === references.filter(i => i !== referringModule).length) {\n          setExpandedReferences([])\n        } else {\n          const newExpandedReferences = [...expandedReferences]\n          references.forEach(reference => {\n            if (!expandedReferences.includes(reference)) {\n              newExpandedReferences.push(reference)\n            }\n          })\n          setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n        }\n      })\n\n      references.filter(i => i !== referringModule).forEach((reference, index) => {\n        addLine(`  ${getShortenedFileName(reference)}`, { fontSize: 16, backgroundColor: index % 2 === 0 ? '#eee' : undefined }, () => {\n          toggleReference(reference)\n        })\n      })\n\n      addLine('Modules:', { fontSize: 18 }, () => {\n        if (expandedModules.length === sourceFile.modules.filter(i => i !== referringModule).length) {\n          setExpandedModules([])\n        } else {\n          const newExpandedModules = [...expandedModules]\n          sourceFile.modules.forEach(module => {\n            if (!expandedModules.includes(module)) {\n              newExpandedModules.push(module)\n            }\n          })\n          setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n        }\n      })\n\n      sourceFile.modules.filter(i => i !== referringModule).forEach((module, index) => {\n        addLine(`  ${getShortenedFileName(module)}`, {\n          fontSize: 16,\n          backgroundColor: index % 2 === 0 ? '#eee' : undefined\n        }, () => {\n          toggleModule(module)\n        })\n      })\n\n      // Bottom margin for card\n      lineOffset += 20\n\n      const card = new fabric.Rect({\n        height: lineOffset,\n        width: cardWidth,\n        fill: '#fff',\n        rx: 10,\n        ry: 10,\n        shadow: new fabric.Shadow({\n          blur: 10,\n        })\n      });\n\n      setCardHeight(lineOffset)\n      if (!positionRef.current) {\n        positionRef.current = calculateTopLeft(fabricCanvas, cardWidth + 30, lineOffset, topAnchor, bottomAnchor, leftAnchor, rightAnchor)\n      }\n\n      const group = new fabric.Group([card, ...groupArray], {\n        hasControls: false,\n        left: positionRef.current.left,\n        top: positionRef.current.top,\n        subTargetCheck: true\n      });\n      groupRef.current = group\n\n      onMove(group, () => {\n        positionRef.current = { left: group.left, top: group.top }\n        setArrow(getAnchorPoints({\n          isModule,\n          cardWidth,\n          parentHeight,\n          parentPosition,\n          currentHeight: cardHeight,\n          currentPosition: positionRef.current\n        }))\n      })\n      fabricCanvas.add(group)\n\n      return () => {\n        fabricCanvas.remove(group)\n      }\n    }\n  }, [fabricCanvas, sourceFileName, pointerState, expandedModules, expandedReferences])\n\n  useEffect(() => {\n    if (expandedModules.length) {\n      setExpandedModules([])\n    }\n    if (expandedReferences.length) {\n      setExpandedReferences([])\n    }\n  }, [sourceFileName])\n\n  useEffect(() => {\n    setArrow(getAnchorPoints({\n      isModule,\n      cardWidth,\n      parentHeight,\n      parentPosition,\n      currentHeight: cardHeight,\n      currentPosition: positionRef.current\n    }))\n  }, [parentPosition, isModule, positionRef.current])\n\n  function toggleReference (referenceName: string) {\n    if (expandedReferences.includes(referenceName)) {\n      const newExpandedReferences = [...expandedReferences].filter(i => i !== referenceName)\n      setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n    } else {\n      const newExpandedReferences = [...expandedReferences]\n      newExpandedReferences.push(referenceName)\n      setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n    }\n  }\n\n  function toggleModule (moduleName: string) {\n    if (expandedModules.includes(moduleName)) {\n      const newExpandedModules = [...expandedModules].filter(i => i !== moduleName)\n      setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n    } else {\n      const newExpandedModules = [...expandedModules]\n      newExpandedModules.push(moduleName)\n      setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n    }\n  }\n\n  return <>\n    {parentPosition && positionRef.current && <Arrow\n      fabricCanvas={fabricCanvas}\n      // If it is a reference, reverse the direction of the arrow\n      lineAnchor={isModule ? arrow.lineAnchor : arrow.arrowPoint}\n      arrowPoint={isModule ? arrow.arrowPoint : arrow.lineAnchor} />}\n    {expandedReferences.map((reference, index) => <ExploreItem key={reference}\n      isReference\n      referringModule={sourceFileName}\n      leftAnchor={isModule ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth): positionRef.current.left + index * (10 + cardWidth)}\n      bottomAnchor={positionRef.current.top - cardSpacing}\n      parentHeight={cardHeight}\n      parentPosition={positionRef.current}\n      sourceFileKeyMap={sourceFileKeyMap}\n      fabricCanvas={fabricCanvas}\n      pointerState={pointerState}\n      sourceFileName={getFileNameWithoutExtension(sourceFileKeyMap, reference)} />)}\n    {expandedModules.map((module, index) => <ExploreItem key={module}\n      isModule\n      referringModule={sourceFileName}\n      leftAnchor={isReference ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth)}\n      topAnchor={positionRef.current.top + cardHeight + cardSpacing}\n      parentHeight={cardHeight}\n      parentPosition={positionRef.current}\n      sourceFileKeyMap={sourceFileKeyMap}\n      fabricCanvas={fabricCanvas}\n      pointerState={pointerState}\n      sourceFileName={getFileNameWithoutExtension(sourceFileKeyMap, module)} />)}\n  </>\n}\n",
+    "text": "import React, { useEffect, useRef, useState } from 'react';\nimport { fabric } from 'fabric';\nimport { SourceFileKeyMap } from '../../../../ast/generateAST'\nimport { getFileNameWithoutExtension, getShortenedFileName, searchSourceFileModules } from '../../utils/sourceFileHelpers'\nimport { calculateTopLeft, getAnchorPoints, onClick, onMove } from '../../utils/fabricHelpers';\nimport Arrow from '../Arrow';\n\nconst cardWidth = 500\nconst cardSpacing = 80\n\nexport default function ExploreItem({\n  fabricCanvas,\n  pointerState,\n  isReference,\n  isModule,\n  referringModule,\n  parentHeight,\n  parentPosition,\n  topAnchor,\n  bottomAnchor,\n  leftAnchor,\n  rightAnchor,\n  sourceFileName,\n  sourceFileKeyMap\n}:\n  {\n    fabricCanvas: fabric.Canvas,\n    pointerState,\n    isReference?: boolean,\n    isModule?: boolean,\n    referringModule?: string,\n    parentHeight?: number,\n    parentPosition?: { left: number, top: number},\n    topAnchor?: number,\n    bottomAnchor?: number,\n    leftAnchor?: number,\n    rightAnchor?: number,\n    sourceFileName: string,\n    sourceFileKeyMap: SourceFileKeyMap\n  }) {\n  const groupRef = useRef<fabric.Group>()\n  const positionRef = useRef<{ left: number, top: number }>()\n  const [ expandedReferences, setExpandedReferences ] = useState([])\n  const [ expandedModules, setExpandedModules ] = useState<string[]>([])\n  const [ cardHeight, setCardHeight ] = useState(400)\n  const [ arrow, setArrow ] = useState<{ lineAnchor?: { x: number; y: number; }; arrowPoint: { x: number; y: number; } }>()\n\n  useEffect(() => {\n    if (fabricCanvas && pointerState) {\n      const sourceFile = sourceFileKeyMap[getFileNameWithoutExtension(sourceFileKeyMap, sourceFileName)]\n      let lineOffset = 20\n      let margin = 20\n      let lineSpacing = 10\n\n      const groupArray = []\n\n      function addLine (text: string, options: fabric.ITextboxOptions, handler?: any) {\n        const textBox = new fabric.Textbox(text, {\n          left: margin,\n          top: lineOffset,\n          width: cardWidth - margin * 2,\n          ...options\n        })\n        if (handler) {\n          onClick(textBox, handler)\n        }\n        groupArray.push(textBox)\n        lineOffset += (options.fontSize || 40) + lineSpacing\n      }\n\n      addLine(getShortenedFileName(sourceFileName), { fontSize: 24, fontWeight: 'bold' }, () => {\n        console.log('clicked title: modal with code?')\n      })\n\n      // Margin below header\n      lineOffset += 20\n\n      const references = searchSourceFileModules(sourceFileKeyMap, sourceFileName).map(i => i.fileName)\n      const filteredReferences = references.filter(i => i !== referringModule)\n      if (filteredReferences.length) {\n        addLine('References:', { fontSize: 18, fill: 'blue', hoverCursor: 'pointer' }, () => {\n          if (expandedReferences.length === filteredReferences.length) {\n            setExpandedReferences([])\n          } else {\n            const newExpandedReferences = [...expandedReferences]\n            references.forEach(reference => {\n              if (!expandedReferences.includes(reference)) {\n                newExpandedReferences.push(reference)\n              }\n            })\n            setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n          }\n        })\n\n        filteredReferences.forEach((reference, index) => {\n          addLine(`  ${getShortenedFileName(reference)}`, {\n            fontSize: 16,\n            hoverCursor: 'pointer',\n            backgroundColor: index % 2 === 0 ? '#eee' : undefined\n          }, () => {\n            toggleReference(reference)\n          })\n        })\n      }\n\n      const classes = sourceFile.statements.filter(i => i.type === 'class')\n      if (classes.length) {\n        addLine('Classes:', { fontSize: 18 })\n\n        classes.forEach((classStatement, index) => {\n          addLine(`  ${classStatement.name || 'UNKNOWN'}`, {\n            fontSize: 16,\n            backgroundColor: index % 2 === 0 ? '#eee' : undefined\n          })\n          classStatement.statements.forEach(subStatement => {\n            addLine(`    ${subStatement.name || 'UNKNOWN'}()`, { fontSize: 16, backgroundColor: index % 2 === 0 ? '#eee' : undefined })\n          })\n        })\n      } else {\n        const declarations = sourceFile.statements.filter(i => i.type === 'function' || i.type === 'method')\n        if (declarations.length) {\n          addLine('Declarations:', { fontSize: 18 })\n  \n          declarations.forEach((statement, index) => {\n            if (/^[A-Z]/.test(statement.name)) {\n              addLine(`    <${statement.name || 'UNKNOWN'}>`, { fontSize: 16, backgroundColor: index % 2 === 0 ? '#eee' : undefined })\n            } else {\n              addLine(`    ${statement.name || 'UNKNOWN'}()`, { fontSize: 16, backgroundColor: index % 2 === 0 ? '#eee' : undefined })\n            }\n          })\n        }\n      }\n\n      const expressions = sourceFile.statements.filter(i => i.type === 'expression')\n      if (expressions.length) {\n        addLine('Expressions:', { fontSize: 18 })\n\n        expressions.forEach((statement, index) => {\n          addLine(`  ${statement.name || 'UNKNOWN'}()`, {\n            fontSize: 16,\n            backgroundColor: index % 2 === 0 ? '#eee' : undefined\n          })\n        })\n      }\n\n      const externalModules = sourceFile.statements.filter(i => i.type === 'module')\n      if (externalModules.length) {\n        addLine('External Modules:', { fontSize: 18 })\n\n        externalModules.forEach((statement, index) => {\n          addLine(`  ${statement.name || 'UNKNOWN'}`, {\n            fontSize: 16,\n            backgroundColor: index % 2 === 0 ? '#eee' : undefined\n          })\n        })\n      }\n\n      const modules = sourceFile.modules.filter(i => i !== referringModule)\n      if (modules.length) {\n        addLine('Modules:', { fontSize: 18, fill: 'blue', hoverCursor: 'pointer' }, () => {\n          if (expandedModules.length === modules.length) {\n            setExpandedModules([])\n          } else {\n            const newExpandedModules = [...expandedModules]\n            sourceFile.modules.forEach(module => {\n              if (!expandedModules.includes(module)) {\n                newExpandedModules.push(module)\n              }\n            })\n            setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n          }\n        })\n\n        modules.forEach((module, index) => {\n          addLine(`  ${getShortenedFileName(module)}`, {\n            fontSize: 16,\n            hoverCursor: 'pointer',\n            backgroundColor: index % 2 === 0 ? '#eee' : undefined\n          }, () => {\n            toggleModule(module)\n          })\n        })\n      } else {\n        addLine('No Modules', { fontSize: 18 })\n      }\n\n      // Bottom margin for card\n      lineOffset += 20\n\n      const card = new fabric.Rect({\n        height: lineOffset,\n        width: cardWidth,\n        fill: '#fff',\n        rx: 10,\n        ry: 10,\n        shadow: new fabric.Shadow({\n          blur: 10,\n        })\n      });\n\n      setCardHeight(lineOffset)\n      if (!positionRef.current) {\n        positionRef.current = calculateTopLeft(fabricCanvas, cardWidth + 30, lineOffset, topAnchor, bottomAnchor, leftAnchor, rightAnchor)\n      }\n\n      const group = new fabric.Group([card, ...groupArray], {\n        hasControls: false,\n        left: positionRef.current.left,\n        top: positionRef.current.top,\n        subTargetCheck: true\n      });\n      groupRef.current = group\n\n      onMove(group, () => {\n        positionRef.current = { left: group.left, top: group.top }\n        setArrow(getAnchorPoints({\n          isModule,\n          cardWidth,\n          parentHeight,\n          parentPosition,\n          currentHeight: cardHeight,\n          currentPosition: positionRef.current\n        }))\n      })\n      fabricCanvas.add(group)\n\n      return () => {\n        fabricCanvas.remove(group)\n      }\n    }\n  }, [fabricCanvas, sourceFileName, pointerState, expandedModules, expandedReferences])\n\n  useEffect(() => {\n    if (expandedModules.length) {\n      setExpandedModules([])\n    }\n    if (expandedReferences.length) {\n      setExpandedReferences([])\n    }\n  }, [sourceFileName])\n\n  useEffect(() => {\n    setArrow(getAnchorPoints({\n      isModule,\n      cardWidth,\n      parentHeight,\n      parentPosition,\n      currentHeight: cardHeight,\n      currentPosition: positionRef.current\n    }))\n  }, [parentPosition, isModule, positionRef.current])\n\n  function toggleReference (referenceName: string) {\n    if (expandedReferences.includes(referenceName)) {\n      const newExpandedReferences = [...expandedReferences].filter(i => i !== referenceName)\n      setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n    } else {\n      const newExpandedReferences = [...expandedReferences]\n      newExpandedReferences.push(referenceName)\n      setExpandedReferences(newExpandedReferences.filter(i => i !== referringModule))\n    }\n  }\n\n  function toggleModule (moduleName: string) {\n    if (expandedModules.includes(moduleName)) {\n      const newExpandedModules = [...expandedModules].filter(i => i !== moduleName)\n      setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n    } else {\n      const newExpandedModules = [...expandedModules]\n      newExpandedModules.push(moduleName)\n      setExpandedModules(newExpandedModules.filter(i => i !== referringModule))\n    }\n  }\n\n  return <>\n    {parentPosition && positionRef.current && <Arrow\n      fabricCanvas={fabricCanvas}\n      // If it is a reference, reverse the direction of the arrow\n      lineAnchor={isModule ? arrow.lineAnchor : arrow.arrowPoint}\n      arrowPoint={isModule ? arrow.arrowPoint : arrow.lineAnchor} />}\n    {expandedReferences.map((reference, index) => <ExploreItem key={reference}\n      isReference\n      referringModule={sourceFileName}\n      leftAnchor={isModule ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth): positionRef.current.left + index * (10 + cardWidth)}\n      bottomAnchor={positionRef.current.top - cardSpacing}\n      parentHeight={cardHeight}\n      parentPosition={positionRef.current}\n      sourceFileKeyMap={sourceFileKeyMap}\n      fabricCanvas={fabricCanvas}\n      pointerState={pointerState}\n      sourceFileName={getFileNameWithoutExtension(sourceFileKeyMap, reference)} />)}\n    {expandedModules.map((module, index) => <ExploreItem key={module}\n      isModule\n      referringModule={sourceFileName}\n      leftAnchor={isReference ? positionRef.current.left + cardWidth + cardSpacing + index * (10 + cardWidth) : positionRef.current.left + index * (10 + cardWidth)}\n      topAnchor={positionRef.current.top + cardHeight + cardSpacing}\n      parentHeight={cardHeight}\n      parentPosition={positionRef.current}\n      sourceFileKeyMap={sourceFileKeyMap}\n      fabricCanvas={fabricCanvas}\n      pointerState={pointerState}\n      sourceFileName={getFileNameWithoutExtension(sourceFileKeyMap, module)} />)}\n  </>\n}\n",
     "modules": [
       "/home/taylor/GitHub/tater-taste/ast/generateAST.ts",
       "/home/taylor/GitHub/tater-taste/client/src/utils/sourceFileHelpers.ts",
@@ -264,91 +192,55 @@
         "type": "module"
       },
       {
-        "pos": 92,
-        "end": 155,
-        "name": "../../../../ast/generateAST",
-        "type": "module"
-      },
-      {
-        "pos": 155,
-        "end": 278,
-        "name": "../../utils/sourceFileHelpers",
-        "type": "module"
-      },
-      {
-        "pos": 278,
-        "end": 374,
-        "name": "../../utils/fabricHelpers",
-        "type": "module"
-      },
-      {
-        "pos": 374,
-        "end": 404,
-        "name": "../Arrow",
-        "type": "module"
-      },
-      {
-        "pos": 404,
-        "end": 427,
-        "name": "cardWidth",
-        "type": "declaration"
-      },
-      {
-        "pos": 427,
-        "end": 450,
-        "name": "cardSpacing",
-        "type": "declaration"
-      },
-      {
         "pos": 450,
-        "end": 8429,
+        "end": 10929,
         "name": "ExploreItem",
-        "type": "statement"
+        "type": "function"
       }
     ]
   },
   "/home/taylor/GitHub/tater-taste/client/src/utils/sourceFileHelpers": {
     "fileName": "/home/taylor/GitHub/tater-taste/client/src/utils/sourceFileHelpers.ts",
-    "text": "import { SourceFile, SourceFileKeyMap } from \"../../../ast/generateAST\"\n\nexport function getFileNameWithoutExtension (sourceFileKeyMap: SourceFileKeyMap, fileName: string): string {\n  if (sourceFileKeyMap[fileName]) {\n    return fileName\n  }\n  let shortened = fileName.replace(/(.*)\\..*/, '$1')\n  if (sourceFileKeyMap[shortened]) {\n    return shortened\n  }\n  shortened = fileName.replace(/(.*)\\/.*/, '$1')\n  if (sourceFileKeyMap[shortened]) {\n    return shortened\n  }\n  throw new Error(`Could not find file ${fileName}`)\n}\n\nexport function getShortenedFileName (fileName: string): string {\n  const match = fileName.match(/([^/]*)\\/*([^/]*)\\/*([^/]*)$/)\n  if (match) {\n    return match.slice(1).filter(i => i).join('/')\n  } else {\n    return fileName\n  }\n}\n\nfunction matchFileText (sourceFile: SourceFile, searchString: string): boolean {\n  return searchString.split(' ').every(searchText => {\n    const regex = new RegExp(searchText.replace(/([^a-z0-9])/g, '\\\\$1'), 'i')\n    if (regex.test(sourceFile.fileName)) {\n      return true\n    }\n    if (regex.test(sourceFile.text)) {\n      return true\n    }\n  })\n}\n\nexport function searchSourceFileText (sourceFileKeyMap: SourceFileKeyMap, searchText: string) {\n  return Object.values(sourceFileKeyMap).reduce((accumulator, sourceFile) => {\n    if (matchFileText(sourceFile, searchText)) {\n      accumulator.push(sourceFile.fileName)\n      return accumulator\n    } else {\n      return accumulator\n    }\n  }, [])\n}\n\nexport function searchSourceFileModules (sourceFileKeyMap: SourceFileKeyMap, fileName: string) {\n  return Object.values(sourceFileKeyMap).reduce((accumulator, sourceFile) => {\n    if (sourceFile.modules.includes(fileName)) {\n      accumulator.push(sourceFile.fileName)\n      return accumulator\n    } else {\n      return accumulator\n    }\n  }, [])\n}\n",
+    "text": "import { SourceFile, SourceFileKeyMap } from \"../../../ast/generateAST\"\n\nexport function getFileNameWithoutExtension (sourceFileKeyMap: SourceFileKeyMap, fileName: string): string {\n  if (sourceFileKeyMap[fileName]) {\n    return fileName\n  }\n  let shortened = fileName.replace(/(.*)\\..*/, '$1')\n  if (sourceFileKeyMap[shortened]) {\n    return shortened\n  }\n  shortened = fileName.replace(/(.*)\\/.*/, '$1')\n  if (sourceFileKeyMap[shortened]) {\n    return shortened\n  }\n  throw new Error(`Could not find file ${fileName}`)\n}\n\nexport function getShortenedFileName (fileName: string): string {\n  const match = fileName.match(/([^/]*)\\/*([^/]*)\\/*([^/]*)$/)\n  if (match) {\n    return match.slice(1).filter(i => i).join('/')\n  } else {\n    return fileName\n  }\n}\n\nfunction matchFileText (sourceFile: SourceFile, searchString: string): boolean {\n  return searchString.split(' ').every(searchText => {\n    const regex = new RegExp(searchText.replace(/([^a-z0-9])/g, '\\\\$1'), 'i')\n    if (regex.test(sourceFile.fileName)) {\n      return true\n    }\n    if (regex.test(sourceFile.text)) {\n      return true\n    }\n  })\n}\n\nfunction matchFileDeclaration (sourceFile: SourceFile, searchString: string): boolean {\n  return searchString.split(' ').every(searchText => {\n    const regex = new RegExp(searchText.replace(/([^a-z0-9])/g, '\\\\$1'), 'i')\n    return sourceFile.statements.some(i => {\n      if (i.type === 'module') return false\n      if (i.type === 'expression') return false\n      return regex.test(i.name) || i.statements?.some(j => regex.test(j.name))\n    })\n  })\n}\n\nexport function searchSourceFileText (sourceFileKeyMap: SourceFileKeyMap, searchText: string) {\n  return Object.values(sourceFileKeyMap).reduce((accumulator, sourceFile) => {\n    if (matchFileDeclaration(sourceFile, searchText)) {\n      accumulator.push({ fileName: sourceFile.fileName, isDeclaration: true })\n    } else if (matchFileText(sourceFile, searchText)) {\n      accumulator.push({ fileName: sourceFile.fileName })\n    }\n    return accumulator\n  }, [])\n}\n\nexport function searchSourceFileModules (sourceFileKeyMap: SourceFileKeyMap, fileName: string) {\n  return Object.values(sourceFileKeyMap).reduce((accumulator, sourceFile) => {\n    if (sourceFile.modules.includes(fileName)) {\n      accumulator.push({ fileName: sourceFile.fileName })\n      return accumulator\n    } else {\n      return accumulator\n    }\n  }, [])\n}\n",
     "modules": [
       "/home/taylor/GitHub/tater-taste/ast/generateAST.ts"
     ],
     "statements": [
       {
-        "pos": 0,
-        "end": 71,
-        "name": "../../../ast/generateAST",
-        "type": "module"
-      },
-      {
         "pos": 71,
         "end": 522,
         "name": "getFileNameWithoutExtension",
-        "type": "statement"
+        "type": "function"
       },
       {
         "pos": 522,
         "end": 755,
         "name": "getShortenedFileName",
-        "type": "statement"
+        "type": "function"
       },
       {
         "pos": 755,
         "end": 1107,
         "name": "matchFileText",
-        "type": "statement"
+        "type": "function"
       },
       {
         "pos": 1107,
-        "end": 1456,
-        "name": "searchSourceFileText",
-        "type": "statement"
+        "end": 1559,
+        "name": "matchFileDeclaration",
+        "type": "function"
       },
       {
-        "pos": 1456,
-        "end": 1806,
+        "pos": 1559,
+        "end": 2024,
+        "name": "searchSourceFileText",
+        "type": "function"
+      },
+      {
+        "pos": 2024,
+        "end": 2388,
         "name": "searchSourceFileModules",
-        "type": "statement"
+        "type": "function"
       }
     ]
   },
@@ -361,49 +253,37 @@
         "pos": 0,
         "end": 302,
         "name": "addToGroup",
-        "type": "statement"
+        "type": "function"
       },
       {
         "pos": 302,
         "end": 765,
         "name": "getObjectOffset",
-        "type": "statement"
+        "type": "function"
       },
       {
         "pos": 765,
         "end": 1520,
         "name": "calculateTopLeft",
-        "type": "statement"
+        "type": "function"
       },
       {
         "pos": 1520,
         "end": 1819,
         "name": "onMove",
-        "type": "statement"
+        "type": "function"
       },
       {
         "pos": 1819,
         "end": 2136,
         "name": "onClick",
-        "type": "statement"
-      },
-      {
-        "pos": 2136,
-        "end": 2261,
-        "name": "AnchorPoints",
-        "type": "statement"
-      },
-      {
-        "pos": 2261,
-        "end": 2288,
-        "name": "offsetFromCard",
-        "type": "declaration"
+        "type": "function"
       },
       {
         "pos": 2288,
         "end": 3257,
         "name": "getAnchorPoints",
-        "type": "statement"
+        "type": "function"
       }
     ]
   },
@@ -428,7 +308,7 @@
         "pos": 65,
         "end": 2800,
         "name": "Arrow",
-        "type": "statement"
+        "type": "function"
       }
     ]
   },
@@ -465,13 +345,13 @@
         "pos": 138,
         "end": 2429,
         "name": "FabricCanvas",
-        "type": "statement"
+        "type": "function"
       }
     ]
   },
   "/home/taylor/GitHub/tater-taste/client/src/components/SearchResult": {
     "fileName": "/home/taylor/GitHub/tater-taste/client/src/components/SearchResult/index.tsx",
-    "text": "import React from 'react';\nimport { css } from '@emotion/css'\nimport Card from '@mui/material/Card';\nimport CardActions from '@mui/material/CardActions';\n\nexport default function SearchResult({ sourceFileName, callback }: { sourceFileName: string, callback: Function }) {\n  return (\n    <>\n      <Card className={css`\n          margin: 10px;\n          position: relative;\n          cursor: pointer;\n        `}\n        sx={{ minWidth: 275, maxWidth: 800 }}\n        onClick={() => callback()}>\n        <CardActions>\n          <h3>{sourceFileName}</h3>\n        </CardActions>\n      </Card>\n    </>\n  )\n}\n",
+    "text": "import React from 'react';\nimport { css } from '@emotion/css'\nimport Card from '@mui/material/Card';\nimport CardActions from '@mui/material/CardActions';\n\nexport default function SearchResult({ sourceFileName, isDeclaration, callback }: { sourceFileName: string, isDeclaration?: boolean, callback: Function }) {\n  return (\n    <>\n      <Card className={css`\n          margin: 10px;\n          position: relative;\n          cursor: pointer;\n        `}\n        sx={{ minWidth: 275, maxWidth: 800 }}\n        onClick={() => callback()}>\n        <CardActions>\n          <h3>{sourceFileName}</h3>\n          {isDeclaration && <div className={css`\n            position: absolute;\n            top: 2px;\n            right: 2px;\n            color: #ff6767;\n          `}>\n            Declaration\n          </div>}\n        </CardActions>\n      </Card>\n    </>\n  )\n}\n",
     "modules": [],
     "statements": [
       {
@@ -500,9 +380,9 @@
       },
       {
         "pos": 153,
-        "end": 600,
+        "end": 851,
         "name": "SearchResult",
-        "type": "statement"
+        "type": "function"
       }
     ]
   }

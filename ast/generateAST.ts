@@ -2,21 +2,29 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import ts = require('typescript');
 
-const logging = false;
-
 const tsConfigCompilerOptions = {
   moduleResolution: 2,
   noImplicitAny: false,
   target: 2,
 };
 
+function getEntryFilePath(entryPoint: string): string {
+  let entryFilePath = join(process.cwd(), entryPoint || '')
+  fileVariations(entryFilePath).concat(entryPoint? fileVariations(entryPoint || '') : []).some((i) => {
+    if (existsSync(i)) {
+      entryFilePath = i
+      return true
+    }
+  })
+  return entryFilePath
+}
+
 export function generateAST(entryPoint?: string, tsConfigPath?: string): { sourceFiles: SourceFileKeyMap, fileGraph: FileGraph } {
-  const entryFilePath = join(process.cwd(), entryPoint || '')
-  const program = ts.createProgram(fileVariations(entryFilePath).concat(entryPoint? fileVariations(entryPoint) : []).filter((i) => existsSync(i)), grabConfig(tsConfigPath));
+  let entryFilePath = getEntryFilePath(entryPoint || '')
+
+  const program = ts.createProgram([entryFilePath], grabConfig(tsConfigPath));
   const programFileMap: ts.Map<ts.SourceFile> = (program as any).getFilesByNameMap();
   const sourceFiles: SourceFileKeyMap = {};
-
-  // console.log('program', program.getRootFileNames())
 
   const fileGraph = traverseFile(sourceFiles, entryFilePath, programFileMap);
   return { sourceFiles, fileGraph };
@@ -38,12 +46,6 @@ function grabConfig(tsConfigPath?: string) {
   return tsConfigCompilerOptions
 }
 
-function debugLog(...params: any) {
-  if (logging) {
-    debugLog(...params);
-  }
-}
-
 export type SourceFileKeyMap = { [key: string]: SourceFile }
 
 export type SourceFile = {
@@ -61,8 +63,9 @@ export type FileGraph = {
 export type Statement = {
   pos: number,
   end: number,
-  name: string,
+  name?: string,
   type: string,
+  statements?: Statement[]
 }
 
 function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.Map<ts.SourceFile>, parentSourceFile?: any, importStatement?: string, prefix: string = ''): FileGraph {
@@ -87,60 +90,83 @@ function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.M
     statements: [],
   };
   sourceFiles[file] = parsedFile;
+  if (!root.statements) {
+    throw new Error(`No root statements in file ${file}`);
+  }
   root.statements.forEach((statement: any, index) => {
-    if(ts.SyntaxKind[statement.kind] === 'ClassDeclaration') {
-      parsedFile.statements?.push({
-        pos: statement.pos,
-        end: statement.end,
-        name: statement.name?.escapedText,
-        type: 'class',
-      });
-    }
-    statement.members?.forEach((member: any) => {
-      if(ts.SyntaxKind[member.kind] === 'MethodDeclaration') {
-        parsedFile.statements?.push({
-          pos: member.pos,
-          end: member.end,
-          name: member.name?.escapedText,
-          type: 'classmethod',
-        });
-      }
-    });
-    debugLog(prefix, 'Index', index);
-    if (statement.moduleSpecifier?.text) {
-      debugLog(prefix, 'statement moduleSpecifier text:', statement.moduleSpecifier.text);
+    if (statement.kind === ts.SyntaxKind.ImportDeclaration) {
       try {
+        const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);
+        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleSpecifier.text, `${prefix}\t`).fileName);
+      } catch (err) {
         parsedFile.statements?.push({
           pos: statement.pos,
           end: statement.end,
           name: statement.moduleSpecifier.text,
           type: 'module',
         });
-        const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);
-        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleSpecifier.text, `${prefix}\t`).fileName);
-      } catch (err) {
-        console.info(prefix, `Skipped ${statement.moduleSpecifier.text} in ${file}`);
+        console.info(prefix, `External module: ${statement.moduleSpecifier.text} in ${file}`);
       }
-    } else if (statement.name?.escapedText) {
-      debugLog(prefix, 'statement name:', statement.name?.escapedText);
-      parsedFile?.statements?.push({
+    } else if (statement.kind === ts.SyntaxKind.ImportEqualsDeclaration) {
+      try {
+        const modulePath = join(root.fileName, '../', statement.moduleReference.expression.text);
+        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleReference.expression.text, `${prefix}\t`).fileName);
+      } catch (err) {
+        parsedFile.statements?.push({
+          pos: statement.pos,
+          end: statement.end,
+          name: statement.moduleReference.expression.text,
+          type: 'module',
+        });
+        console.info(prefix, `External module: ${statement.moduleReference.expression.text} in ${file}`);
+      }
+    } else if (statement.kind === ts.SyntaxKind.ClassDeclaration) {
+      parsedFile.statements?.push({
         pos: statement.pos,
         end: statement.end,
         name: statement.name?.escapedText,
-        type: 'statement',
+        type: 'class',
+        statements: statement.members?.map((nestedStatement: any) => {
+          if (nestedStatement.kind === ts.SyntaxKind.FunctionDeclaration) {
+            return {
+              pos: nestedStatement.pos,
+              end: nestedStatement.end,
+              name: nestedStatement.name.escapedText,
+              type: 'function',
+            };
+          } else if (nestedStatement.kind === ts.SyntaxKind.MethodDeclaration) {
+            return {
+              pos: nestedStatement.pos,
+              end: nestedStatement.end,
+              name: nestedStatement.name.escapedText,
+              type: 'method',
+            };
+          }
+        })
       });
-    } else if (statement.declarationList?.declarations) {
-      statement.declarationList.declarations.forEach((declaration: ts.Declaration & { name: { escapedText: string }}) => {
-        debugLog(prefix, 'declaration name:', declaration.name?.escapedText);
-        parsedFile?.statements?.push({
-          pos: statement.pos,
-          end: statement.end,
-          name: declaration.name?.escapedText,
-          type: 'declaration',
-        });
+    } else if (statement.kind === ts.SyntaxKind.FunctionDeclaration) {
+      parsedFile.statements?.push({
+        pos: statement.pos,
+        end: statement.end,
+        name: statement.name.escapedText,
+        type: 'function',
+      });
+    } else if (statement.kind === ts.SyntaxKind.MethodDeclaration) {
+      parsedFile.statements?.push({
+        pos: statement.pos,
+        end: statement.end,
+        name: statement.name.escapedText,
+        type: 'method',
+      });
+    } else if (statement.kind === ts.SyntaxKind.ExpressionStatement) {
+      parsedFile.statements?.push({
+        pos: statement.pos,
+        end: statement.end,
+        name: statement.expression.name?.escapedText || statement.expression.expression?.name.escapedText || statement.expression.expression?.expression?.name.escapedText,
+        type: 'expression',
       });
     } else {
-      debugLog(prefix, 'Missed something', statement);
+      // console.debug(prefix, 'Missed something', ts.SyntaxKind[statement.kind]);
     }
   });
   return { fileName: parsedFile.fileName, modules: parsedFile.modules };
