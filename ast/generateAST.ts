@@ -142,7 +142,7 @@ function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.M
               type: 'method',
             };
           }
-        })
+        }).filter((i: any) => i)
       });
     } else if (statement.kind === ts.SyntaxKind.FunctionDeclaration) {
       parsedFile.statements?.push({
