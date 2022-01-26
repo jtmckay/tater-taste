@@ -104,4 +104,4 @@ dist
 .tern-port
 
 # Ignore server copies of client files
-*/server/public*
+server/public*
