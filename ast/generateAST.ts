@@ -19,7 +19,7 @@ function getEntryFilePath(entryPoint: string): string {
   }).some((i) => {
     if (existsSync(i)) {
       entryFilePath = i
-      console.log('entry', entryFilePath)
+      console.log('Input', entryFilePath)
       return true
     }
   })
@@ -100,7 +100,7 @@ function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.M
   if (!root.statements) {
     throw new Error(`No root statements in file ${file}`);
   }
-  root.statements.forEach((statement: any, index) => {
+  root.statements.forEach((statement: any) => {
     if (statement.kind === ts.SyntaxKind.ImportDeclaration) {
       try {
         const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);
@@ -172,6 +172,20 @@ function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.M
         name: statement.expression.name?.escapedText || statement.expression.expression?.name.escapedText || statement.expression.expression?.expression?.name.escapedText,
         type: 'expression',
       });
+    } else if (statement.moduleSpecifier?.text) {
+      // Catch all statements with a module specified; EG: ts.SyntaxKind.ExportDeclaration
+      try {
+        const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);
+        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleSpecifier.text, `${prefix}\t`).fileName);
+      } catch (err) {
+        parsedFile.statements?.push({
+          pos: statement.pos,
+          end: statement.end,
+          name: statement.moduleSpecifier.text,
+          type: 'module',
+        });
+        console.info(prefix, `External module: ${statement.moduleSpecifier.text} in ${file}`);
+      }
     } else {
       // console.debug(prefix, 'Missed something', ts.SyntaxKind[statement.kind]);
     }
