@@ -49,5 +49,5 @@
     "start": "yarn copy:public && yarn build:client && nodemon server",
     "watch": "esbuild ./client/src/App.tsx --bundle --watch --outfile=./server/public/index.js --target=chrome58,firefox57,safari11,edge18"
   },
-  "version": "1.0.21"
+  "version": "1.0.22"
 }
