@@ -41,6 +41,9 @@
   "license": "ISC",
   "main": "dist/index.js",
   "name": "tater-taste",
+  "resolutions": {
+    "simple-get": "^4.0.1"
+  },
   "scripts": {
     "ast": "npx ts-node ast client/src/App",
     "build": "rm -rf dist && npx tsc",
