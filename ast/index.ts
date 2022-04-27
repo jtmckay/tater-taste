@@ -16,10 +16,16 @@ program.description('An application for exploring typescript repositories')
     -- Compile the target typescript file, and host a webpage locally to explore
 `)
 .argument('[file]', 'Specify the path of the file')
-.option('-c --config <type>', 'Specify the path to your tsconfig.json')
-.action((filePath: string, { config }: { config: string }) => {
+.option('-c --config <string>', 'Specify the path to your tsconfig.json')
+.option('-m --map <string>', 'Specify the paths to check for external packages (comma delimited) EG: @streem/sdk-react=packages/sdk-react/src')
+.action((filePath: string, { config, map }: { config: string, map: string }) => {
   try {
-    const ast = generateAST(filePath, config)
+    const mapping = map?.split(',').map(i => {
+      const [ importName, path ] = i.split('/')
+      return { importName, path }
+    })
+    const ast = generateAST(filePath, config, mapping)
+    console.log('__dirname', __dirname)
     fs.writeFileSync(join(__dirname, '../client/src/', 'fileGraph.json'), JSON.stringify(ast.fileGraph, null, 2))
     fs.writeFileSync(join(__dirname, '../client/src/', 'sourceFiles.json'), JSON.stringify(ast.sourceFiles, null, 2))
     console.log('Output', join(__dirname, '../client/src/', 'sourceFiles.json'))

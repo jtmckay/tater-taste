@@ -26,14 +26,14 @@ function getEntryFilePath(entryPoint: string): string {
   return entryFilePath
 }
 
-export function generateAST(entryPoint?: string, tsConfigPath?: string): { sourceFiles: SourceFileKeyMap, fileGraph: FileGraph } {
+export function generateAST(entryPoint?: string, tsConfigPath?: string, mapping: { importName: string, path: string}[] = []): { sourceFiles: SourceFileKeyMap, fileGraph: FileGraph } {
   let entryFilePath = getEntryFilePath(entryPoint || '')
 
   const program = ts.createProgram([entryFilePath], grabConfig(tsConfigPath));
   const programFileMap: ts.Map<ts.SourceFile> = (program as any).getFilesByNameMap();
   const sourceFiles: SourceFileKeyMap = {};
 
-  const fileGraph = traverseFile(sourceFiles, entryFilePath, programFileMap);
+  const fileGraph = traverseFile(sourceFiles, entryFilePath, programFileMap, mapping);
   return { sourceFiles, fileGraph };
 }
 
@@ -75,13 +75,13 @@ export type Statement = {
   statements?: Statement[]
 }
 
-function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.Map<ts.SourceFile>, parentSourceFile?: any, importStatement?: string, prefix: string = ''): FileGraph {
-  const root = findFile(file, fileMap, importStatement);
+function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.Map<ts.SourceFile>, mapping: { importName: string, path: string}[] = [], parentSourceFile?: any, importStatement?: string, prefix: string = ''): FileGraph {
+  const root = findFile(file, fileMap, importStatement, mapping);
 
   if (!root && parentSourceFile && parentSourceFile.resolvedModules.get(importStatement)) {
     const subProgram = ts.createProgram(fileVariations(file).filter((i) => existsSync(i)), tsConfigCompilerOptions);
     const subFileMap: ts.Map<ts.SourceFile> = (subProgram as any).getFilesByNameMap();
-    return traverseFile(sourceFiles, file, subFileMap);
+    return traverseFile(sourceFiles, file, subFileMap, mapping);
   }
 
   if (!root) {
@@ -104,7 +104,7 @@ function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.M
     if (statement.kind === ts.SyntaxKind.ImportDeclaration) {
       try {
         const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);
-        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleSpecifier.text, `${prefix}\t`).fileName);
+        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, mapping, root, statement.moduleSpecifier.text, `${prefix}\t`).fileName);
       } catch (err) {
         parsedFile.statements?.push({
           pos: statement.pos,
@@ -117,7 +117,7 @@ function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.M
     } else if (statement.kind === ts.SyntaxKind.ImportEqualsDeclaration) {
       try {
         const modulePath = join(root.fileName, '../', statement.moduleReference.expression.text);
-        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleReference.expression.text, `${prefix}\t`).fileName);
+        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, mapping, root, statement.moduleReference.expression.text, `${prefix}\t`).fileName);
       } catch (err) {
         parsedFile.statements?.push({
           pos: statement.pos,
@@ -176,7 +176,7 @@ function traverseFile(sourceFiles: SourceFileKeyMap, file: string, fileMap: ts.M
       // Catch all statements with a module specified; EG: ts.SyntaxKind.ExportDeclaration
       try {
         const modulePath = join(root.fileName, '../', statement.moduleSpecifier.text);
-        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, root, statement.moduleSpecifier.text, `${prefix}\t`).fileName);
+        parsedFile.modules.push(traverseFile(sourceFiles, modulePath, fileMap, mapping, root, statement.moduleSpecifier.text, `${prefix}\t`).fileName);
       } catch (err) {
         parsedFile.statements?.push({
           pos: statement.pos,
@@ -208,13 +208,22 @@ function fileVariations(file: string): string[] {
   ];
 }
 
-function findFile(file: string, fileMap: ts.Map<ts.SourceFile>, importStatement?: string): ts.SourceFile | undefined {
+function findFile(file: string, fileMap: ts.Map<ts.SourceFile>, importStatement?: string, mapping: { importName: string, path: string}[] = []): ts.SourceFile | undefined {
   let foundFile;
   if (importStatement) {
     fileVariations(importStatement).some((filePath) => {
       foundFile = fileMap.get(filePath);
       return !!foundFile;
     });
+  }
+  if (importStatement) {
+    const mappingPath = mapping.find(i => i.importName === importStatement)?.path
+    if (mappingPath) {
+      fileVariations(join(process.cwd(), mappingPath, importStatement)).some((filePath) => {
+        foundFile = fileMap.get(filePath);
+        return !!foundFile;
+      });
+    }
   }
   if (!foundFile) {
     fileVariations(file).some((filePath) => {
