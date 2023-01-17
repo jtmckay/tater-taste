@@ -2,7 +2,7 @@ import { existsSync } from "fs";
 import { join } from "path";
 import ts = require("typescript");
 
-const tsConfigCompilerOptions = {
+let tsConfigCompilerOptions: any = {
   moduleResolution: 2,
   noImplicitAny: false,
   target: 2,
@@ -32,11 +32,27 @@ function getEntryFilePath(entryPoint: string): string {
 export function generateAST(
   entryPoint?: string,
   tsConfigPath?: string,
+  absolutePaths: { pathName: string; absolutePath: string }[] = [],
   mapping: { importName: string; path: string }[] = []
 ): { sourceFiles: SourceFileKeyMap; fileGraph: FileGraph } {
-  let entryFilePath = getEntryFilePath(entryPoint || "");
-
-  const program = ts.createProgram([entryFilePath], grabConfig(tsConfigPath));
+  let entryFilePath = getEntryFilePath(
+    join(process.cwd(), entryPoint || "") || ""
+  );
+  const configFile = ts.findConfigFile(
+    join(process.cwd(), tsConfigPath || ""),
+    ts.sys.fileExists,
+    "tsconfig.json"
+  );
+  if (configFile) {
+    const { config } = ts.readConfigFile(configFile, ts.sys.readFile);
+    const { options } = ts.parseJsonConfigFileContent(
+      config,
+      ts.sys,
+      entryFilePath
+    );
+    tsConfigCompilerOptions = options;
+  }
+  const program = ts.createProgram([entryFilePath], tsConfigCompilerOptions);
   const programFileMap: ts.Map<ts.SourceFile> = (
     program as any
   ).getFilesByNameMap();
@@ -46,20 +62,46 @@ export function generateAST(
     sourceFiles,
     entryFilePath,
     programFileMap,
+    absolutePaths,
     mapping
   );
   return { sourceFiles, fileGraph };
 }
 
-function grabConfig(tsConfigPath?: string) {
-  if (tsConfigPath) {
-    const tsConfigFilePath = join(process.cwd(), tsConfigPath);
-    try {
-      const tsConfig = require(tsConfigFilePath);
-      if (tsConfig.compilerOptions) {
-        return tsConfig.compilerOptions;
-      }
-    } catch (err) {
+export function grabConfigPaths(
+  tsConfigPathsPath?: string
+): { pathName: string; absolutePath: string }[] {
+  const tsConfigFilePath = join(
+    process.cwd(),
+    tsConfigPathsPath || "tsconfig.paths.json"
+  );
+  try {
+    const tsConfig = require(tsConfigFilePath);
+    let paths;
+    if (tsConfig.compilerOptions && tsConfig.compilerOptions.paths) {
+      paths = tsConfig.compilerOptions.paths;
+    } else if (tsConfig.paths) {
+      paths = tsConfig.paths;
+    }
+    console.log("Loaded tsconfig paths");
+    return Object.entries(paths)
+      .map(([key, value]) => {
+        return {
+          pathName: key.replace("*", "").replace(/\/$/, ""),
+          absolutePath: join(
+            tsConfigFilePath,
+            "..",
+            ...(Array.isArray(value) ? value : [value]).map((i) =>
+              i.replace("*", "").replace(/\/$/, "")
+            )
+          ),
+        };
+      })
+      .sort((a, b) => {
+        return b.pathName.length - a.pathName.length;
+      });
+  } catch (err) {
+    if (tsConfigPathsPath) {
       console.log(
         "Could not load tsconfig at",
         tsConfigFilePath,
@@ -68,7 +110,7 @@ function grabConfig(tsConfigPath?: string) {
       throw err;
     }
   }
-  return tsConfigCompilerOptions;
+  return [];
 }
 
 export type SourceFileKeyMap = { [key: string]: SourceFile };
@@ -97,59 +139,151 @@ function traverseFile(
   sourceFiles: SourceFileKeyMap,
   file: string,
   fileMap: ts.Map<ts.SourceFile>,
+  absolutePaths: { pathName: string; absolutePath: string }[] = [],
   mapping: { importName: string; path: string }[] = [],
   parentSourceFile?: any,
   importStatement?: string,
   prefix: string = ""
 ): FileGraph {
-  const root = findFile(file, fileMap, importStatement, mapping);
+  const sourceFile = findFile(
+    file,
+    fileMap,
+    importStatement,
+    absolutePaths,
+    mapping
+  );
 
-  if (
-    !root &&
-    parentSourceFile &&
-    parentSourceFile.resolvedModules.get(importStatement)
-  ) {
-    const subProgram = ts.createProgram(
-      fileVariations(file).filter((i) => existsSync(i)),
-      tsConfigCompilerOptions
-    );
-    const subFileMap: ts.Map<ts.SourceFile> = (
-      subProgram as any
-    ).getFilesByNameMap();
-    return traverseFile(sourceFiles, file, subFileMap, mapping);
+  if (!sourceFile && parentSourceFile) {
+    // mapping route
+    if (parentSourceFile.resolvedModules.get(importStatement)) {
+      const subProgram = ts.createProgram(
+        fileVariations(file).filter((i) => existsSync(i)),
+        tsConfigCompilerOptions
+      );
+      const subFileMap: ts.Map<ts.SourceFile> = (
+        subProgram as any
+      ).getFilesByNameMap();
+      subFileMap.forEach((value, key) => {
+        if (value) {
+          parseFile(
+            value,
+            sourceFiles,
+            key,
+            fileMap,
+            absolutePaths,
+            mapping,
+            prefix
+          );
+          fileMap.set(key, value);
+        }
+      });
+      return traverseFile(sourceFiles, file, fileMap, absolutePaths, mapping);
+      // absolutePaths route
+    } else {
+      let pathName;
+      let absolutePath;
+      absolutePaths.some((path) => {
+        if ((importStatement || "").startsWith(path.pathName)) {
+          absolutePath = path.absolutePath;
+          pathName = path.pathName;
+          return true;
+        }
+      });
+
+      if (pathName && absolutePath) {
+        const subProgram = ts.createProgram(
+          fileVariations(
+            join(absolutePath, (importStatement || "").replace(pathName, ""))
+          ).filter((i) => existsSync(i)),
+          tsConfigCompilerOptions
+        );
+        const subFileMap: ts.Map<ts.SourceFile> = (
+          subProgram as any
+        ).getFilesByNameMap();
+        subFileMap.forEach((value, key) => {
+          if (value) {
+            parseFile(
+              value,
+              sourceFiles,
+              key,
+              fileMap,
+              absolutePaths,
+              mapping,
+              prefix
+            );
+            fileMap.set(key, value);
+          }
+        });
+        return traverseFile(sourceFiles, file, fileMap, absolutePaths, mapping);
+      }
+    }
   }
 
-  if (!root) {
+  const parsedFile = parseFile(
+    sourceFile,
+    sourceFiles,
+    file,
+    fileMap,
+    absolutePaths,
+    mapping,
+    prefix
+  );
+  return { fileName: parsedFile.fileName, modules: parsedFile.modules };
+}
+
+function parseFile(
+  sourceFile: ts.SourceFile | undefined,
+  sourceFiles: SourceFileKeyMap,
+  file: string,
+  fileMap: ts.Map<ts.SourceFile>,
+  absolutePaths: { pathName: string; absolutePath: string }[] = [],
+  mapping: { importName: string; path: string }[] = [],
+  prefix: string = ""
+) {
+  if (!sourceFile) {
     throw new Error(`Could not find file ${file}`);
   }
   if (sourceFiles[file]) {
     return sourceFiles[file];
   }
+
   const parsedFile: SourceFile = {
-    fileName: root.fileName,
-    text: root.text,
+    fileName: sourceFile.fileName,
+    text: sourceFile.text,
     modules: [],
     statements: [],
   };
   sourceFiles[file] = parsedFile;
-  if (!root.statements) {
-    throw new Error(`No root statements in file ${file}`);
+  if (!sourceFile.statements) {
+    throw new Error(`No sourceFile statements in file ${file}`);
   }
-  root.statements.forEach((statement: any) => {
+  sourceFile.statements.forEach((statement: any) => {
     if (statement.kind === ts.SyntaxKind.ImportDeclaration) {
       try {
         const modulePath = join(
-          root.fileName,
+          sourceFile.fileName,
           "../",
           statement.moduleSpecifier.text
         );
+        let absolutePath;
+        absolutePaths.some((i) => {
+          if (statement.moduleSpecifier.text.startsWith(i.pathName)) {
+            absolutePath = join(
+              i.absolutePath,
+              statement.moduleSpecifier.text.replace(i.pathName, "")
+            );
+            return true;
+          }
+        });
+
         parsedFile.modules.push(
           traverseFile(
             sourceFiles,
-            modulePath,
+            absolutePath || modulePath,
             fileMap,
+            absolutePaths,
             mapping,
-            root,
+            sourceFile,
             statement.moduleSpecifier.text,
             `${prefix}\t`
           ).fileName
@@ -169,7 +303,7 @@ function traverseFile(
     } else if (statement.kind === ts.SyntaxKind.ImportEqualsDeclaration) {
       try {
         const modulePath = join(
-          root.fileName,
+          sourceFile.fileName,
           "../",
           statement.moduleReference.expression.text
         );
@@ -178,8 +312,9 @@ function traverseFile(
             sourceFiles,
             modulePath,
             fileMap,
+            absolutePaths,
             mapping,
-            root,
+            sourceFile,
             statement.moduleReference.expression.text,
             `${prefix}\t`
           ).fileName
@@ -252,7 +387,7 @@ function traverseFile(
       // Catch all statements with a module specified; EG: ts.SyntaxKind.ExportDeclaration
       try {
         const modulePath = join(
-          root.fileName,
+          sourceFile.fileName,
           "../",
           statement.moduleSpecifier.text
         );
@@ -261,8 +396,9 @@ function traverseFile(
             sourceFiles,
             modulePath,
             fileMap,
+            absolutePaths,
             mapping,
-            root,
+            sourceFile,
             statement.moduleSpecifier.text,
             `${prefix}\t`
           ).fileName
@@ -283,7 +419,7 @@ function traverseFile(
       // console.debug(prefix, 'Missed something', ts.SyntaxKind[statement.kind]);
     }
   });
-  return { fileName: parsedFile.fileName, modules: parsedFile.modules };
+  return parsedFile;
 }
 
 function fileVariations(file: string): string[] {
@@ -305,14 +441,18 @@ function findFile(
   file: string,
   fileMap: ts.Map<ts.SourceFile>,
   importStatement?: string,
+  absolutePaths: { pathName: string; absolutePath: string }[] = [],
   mapping: { importName: string; path: string }[] = []
 ): ts.SourceFile | undefined {
-  let foundFile;
+  let foundFile: ts.SourceFile | undefined;
   if (importStatement) {
     fileVariations(importStatement).some((filePath) => {
       foundFile = fileMap.get(filePath);
       return !!foundFile;
     });
+  }
+  if (foundFile) {
+    return foundFile;
   }
   if (importStatement) {
     const mappingPath = mapping.find(
@@ -326,12 +466,55 @@ function findFile(
         }
       );
     }
+
+    if (foundFile) {
+      return foundFile;
+    }
+
+    if (importStatement.startsWith("@")) {
+      let pathName;
+      let absolutePath;
+      absolutePaths.some((path) => {
+        if (importStatement.startsWith(path.pathName)) {
+          absolutePath = path.absolutePath;
+          pathName = path.pathName;
+        }
+      });
+
+      if (pathName && absolutePath) {
+        fileVariations(
+          join(absolutePath, importStatement.replace(pathName, ""))
+        ).some((filePath) => {
+          foundFile = fileMap.get(filePath);
+          return !!foundFile;
+        });
+
+        if (foundFile) {
+          return foundFile;
+        }
+
+        fileVariations(
+          join(absolutePath, importStatement.replace(pathName, ""))
+        ).some((filePath) => {
+          fileMap.forEach((file) => {
+            if (file.fileName === filePath) {
+              foundFile = file;
+            }
+          });
+          return !!foundFile;
+        });
+      }
+    }
   }
-  if (!foundFile) {
-    fileVariations(file).some((filePath) => {
-      foundFile = fileMap.get(filePath);
-      return !!foundFile;
-    });
+
+  if (foundFile) {
+    return foundFile;
   }
+
+  fileVariations(file).some((filePath) => {
+    foundFile = fileMap.get(filePath);
+    return !!foundFile;
+  });
+
   return foundFile;
 }

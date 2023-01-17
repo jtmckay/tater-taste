@@ -1,6 +1,7 @@
 ![npm (scoped)](https://img.shields.io/npm/v/tater-taste?label=NPM) ![NPM](https://img.shields.io/npm/l/tater-taste?label=License) ![npm](https://img.shields.io/npm/dt/tater-taste?label=Downloads)
 
 # tater-taste
+
 Tater - TypeScript Abstract Syntax Tree Explorer
 
 Explore your codebase visually, and follow code paths more easily. Don't get lost (hopefully).
@@ -16,11 +17,20 @@ This will host a website locally at localhost:4444 where you can browse your cod
 ![](https://github.com/jtmckay/tater-taste/blob/HEAD/client/public/Capture.JPG)
 
 ### Options
+
 Specify the entry file if it is not in the current working directory and named index.ts by passing the path as an argument.
 
 For Example:
 
 `npx tater-taste@latest client/src/App`
+
+#### More Options
+
+##### .option("-c --config <string>", "Specify the path to your tsconfig.json")
+
+##### .option("-p --paths <string>", "Specify the path to your tsconfig.paths.json")
+
+##### .option("-m --map <string>","Specify the paths to check for external packages (comma delimited) EG: @streem/sdk-react=packages/sdk-react/src")
 
 ## Contributing
 

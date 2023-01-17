@@ -3,7 +3,7 @@
 import { Command } from "commander";
 import fs from "fs";
 import { join } from "path";
-import { generateAST } from "./generateAST";
+import { generateAST, grabConfigPaths } from "./generateAST";
 const { exec } = require("child_process");
 
 const program = new Command();
@@ -21,18 +21,28 @@ program
   )
   .argument("[file]", "Specify the path of the file")
   .option("-c --config <string>", "Specify the path to your tsconfig.json")
+  .option("-p --paths <string>", "Specify the path to your tsconfig.paths.json")
   .option(
     "-m --map <string>",
     "Specify the paths to check for external packages (comma delimited) EG: @streem/sdk-react=packages/sdk-react/src"
   )
   .action(
-    (filePath: string, { config, map }: { config: string; map: string }) => {
+    (
+      filePath: string,
+      { config, map, paths }: { config: string; map: string; paths: string }
+    ) => {
       try {
-        const mapping = map?.split(",").map((i) => {
-          const [importName, path] = i.split("/");
-          return { importName, path };
-        });
-        const ast = generateAST(filePath, config, mapping);
+        console.time("Compile web server");
+        const mapping: { importName: string; path: string }[] = map
+          ?.split(",")
+          .map((i) => {
+            const [importName, path] = i.split("/");
+            return { importName, path };
+          });
+
+        const absolutePaths = grabConfigPaths(paths);
+
+        const ast = generateAST(filePath, config, absolutePaths, mapping);
         console.log("__dirname", __dirname);
         fs.writeFileSync(
           join(__dirname, "../client/src/", "fileGraph.json"),
@@ -52,6 +62,8 @@ program
         );
         throw err;
       }
+
+      console.timeEnd("Compile web server");
 
       const childProcess = exec(
         `cd ${join(__dirname, "../")} && yarn start`,
